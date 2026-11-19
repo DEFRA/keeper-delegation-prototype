@@ -1,0 +1,59 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Check the details before you send the invitation" %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/add/holdings" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">Check the details before you send the invitation</h1>
+
+    {% set holdingsHtml %}
+      <ul class="govuk-list">
+        {% for h in draft.holdings %}<li>{{ h.name }} ({{ h.cph }})</li>{% endfor %}
+      </ul>
+    {% endset %}
+
+    {{ govukSummaryList({
+      rows: [
+        {
+          key: { text: "Role" },
+          value: { text: draft.role },
+          actions: { items: [{ href: "/people/add/role", text: "Change", visuallyHiddenText: "role" }] }
+        },
+        {
+          key: { text: "Full name" },
+          value: { text: draft.name },
+          actions: { items: [{ href: "/people/add/details", text: "Change", visuallyHiddenText: "full name" }] }
+        },
+        {
+          key: { text: "Email address" },
+          value: { text: draft.email },
+          actions: { items: [{ href: "/people/add/details", text: "Change", visuallyHiddenText: "email address" }] }
+        },
+        {
+          key: { text: "Holdings" },
+          value: { html: holdingsHtml },
+          actions: { items: [{ href: "/people/add/holdings", text: "Change", visuallyHiddenText: "holdings" }] }
+        }
+      ]
+    }) }}
+
+    <h2 class="govuk-heading-m">What happens next</h2>
+    <p class="govuk-body">We will email {{ draft.name }} an invitation. It will stay pending until they accept or decline it. They cannot access {{ currentBusiness.name }} until they have signed in and completed the enrolment checks.</p>
+    <p class="govuk-body">The invitation, and whether it is accepted, will be recorded in the activity log.</p>
+
+    <form method="post" novalidate>
+      {{ govukButton({ text: "Send invitation" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

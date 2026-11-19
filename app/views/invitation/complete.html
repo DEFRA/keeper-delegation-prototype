@@ -1,0 +1,22 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "You now have access to " + invitation.businessName %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {{ govukPanel({
+      titleText: "You now have access",
+      html: "You are a " + (invitation.role | lower) + " for<br><strong>" + invitation.businessName + "</strong>"
+    }) }}
+
+    <p class="govuk-body">{{ invitation.addedBy }} can see that you have accepted the invitation.</p>
+
+    {{ govukButton({ text: "Continue", href: nextUrl }) }}
+
+  </div>
+</div>
+
+{% endblock %}

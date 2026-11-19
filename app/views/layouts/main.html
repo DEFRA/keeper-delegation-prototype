@@ -1,6 +1,28 @@
 {#
 For guidance on how to use layouts see:
-https://prototype-kit.service.gov.uk/docs/how-to-use-layouts
+https://prototype-kit.service.gov.uk/how-to-use-layouts/
 #}
 
 {% extends "govuk-prototype-kit/layouts/govuk-branded.njk" %}
+
+{% block govukServiceNavigation %}
+  {{ govukServiceNavigation({
+    serviceName: serviceName,
+    serviceUrl: "/start",
+    navigation: navItems
+  }) }}
+{% endblock %}
+
+{% block beforeContent %}
+  {{ govukPhaseBanner({
+    tag: { text: "Prototype" },
+    text: "This is a prototype for walkthroughs. It does not use real data."
+  }) }}
+  {% if currentUser %}
+    <p class="govuk-body-s app-signed-in">
+      Signed in as <strong>{{ currentUser.name }}</strong>
+      {%- if currentBusiness %} for {{ currentBusiness.name }} ({{ (currentRole if currentHolding else currentRelationship.roleLabel) | lower }}{% if currentHolding %} on {{ currentHolding.cph }}{% endif %}){% endif %}
+    </p>
+  {% endif %}
+  {% block pageBeforeContent %}{% endblock %}
+{% endblock %}

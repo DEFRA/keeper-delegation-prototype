@@ -1,0 +1,82 @@
+{% extends "layouts/main.html" %}
+
+{% set heading = ("People who can act on " + holding.name) if holding else "People with access" %}
+{% set pageName = heading %}
+
+{% macro peopleTable(list, caption, showSignIn) %}
+<table class="govuk-table">
+  <caption class="govuk-table__caption govuk-table__caption--m">{{ caption }}</caption>
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Name</th>
+      <th scope="col" class="govuk-table__header">{{ "Role on this holding" if holding else "Role" }}</th>
+      {% if not holding %}<th scope="col" class="govuk-table__header">Holdings</th>{% endif %}
+      <th scope="col" class="govuk-table__header">{{ "Last signed in" if showSignIn else "Invited" }}</th>
+      <th scope="col" class="govuk-table__header">Status</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for person in list %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">
+        <a class="govuk-link" href="/people/{{ person.id }}">{{ person.name }}</a>
+        {% if person.email == currentUser.email %} (you){% endif %}
+        <span class="govuk-body-s app-table-secondary">{{ person.email }}</span>
+      </td>
+      <td class="govuk-table__cell">{{ person.roleLabel }}</td>
+      {% if not holding %}<td class="govuk-table__cell govuk-body-s">{{ person.holdingsLabel }}</td>{% endif %}
+      <td class="govuk-table__cell govuk-body-s">
+        {% if showSignIn %}{{ (person.lastSignIn | formatDate) or "Not yet" }}{% else %}{{ person.addedOn | formatDate }} by {{ person.addedBy }}{% endif %}
+      </td>
+      <td class="govuk-table__cell"><strong class="govuk-tag {{ person.status | tagClass }}">{{ person.status }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% block pageBeforeContent %}
+  {% if holding %}{{ govukBackLink({ text: "Back to business overview", href: "/business" }) }}{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if flash %}
+      {{ govukNotificationBanner({ type: "success", text: flash }) }}
+    {% endif %}
+
+    <span class="govuk-caption-l">{{ (holding.cph + " – " + currentBusiness.name) if holding else currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    {% if holding %}
+      <p class="govuk-body">Select a person to change their role on this holding or revoke their access. <a class="govuk-link" href="/people">See everyone with access to {{ currentBusiness.name }}</a>.</p>
+    {% else %}
+      <p class="govuk-body">Everyone who can act for {{ currentBusiness.name }}. Select a person to see their role on each holding, change it or revoke it.</p>
+    {% endif %}
+
+    {{ govukButton({ text: "Add a person", href: "/people/add/role?new=1" }) }}
+
+    {% if not delegatedCount %}
+      {{ govukInsetText({ text: "You have not given anyone access " + ("to this holding" if holding else "to this business") + " yet." }) }}
+    {% endif %}
+
+  </div>
+</div>
+
+{{ peopleTable(active, "Active", true) }}
+
+{% if invited.length %}
+  {{ peopleTable(invited, "Invitations waiting to be accepted", false) }}
+{% endif %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {% set roleHtml %}{% include "includes/role-descriptions.html" %}{% endset %}
+    {{ govukDetails({ summaryText: "What each role can do", html: roleHtml }) }}
+  </div>
+</div>
+
+{% endblock %}

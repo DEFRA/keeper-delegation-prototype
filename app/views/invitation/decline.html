@@ -1,0 +1,31 @@
+{% extends "layouts/main.html" %}
+
+{% set heading = "Are you sure you want to decline this invitation?" %}
+{% set pageName = heading %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/invitation?id=" + invitation.id }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">Invitation from {{ invitation.addedBy }}</span>
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    <p class="govuk-body">You will not get access to {{ invitation.businessName }}. {{ invitation.addedBy }} would need to send you a new invitation if you change your mind.</p>
+
+    <form method="post" novalidate>
+      <input type="hidden" name="invitationId" value="{{ invitation.id }}">
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Decline invitation", classes: "govuk-button--warning" }) }}
+        <a class="govuk-link" href="/invitation?id={{ invitation.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

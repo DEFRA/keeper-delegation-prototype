@@ -1,0 +1,48 @@
+{% extends "layouts/main.html" %}
+
+{% set promoting = to == "Keeper administrator" %}
+{% set heading = "Make " + person.name + " a " + (to | lower) + " on " + holding.name + "?" %}
+{% set pageName = heading %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id + "/role?cph=" + (holding.cph | urlencode) }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "Holding" }, value: { text: holding.name + " (" + holding.cph + ")" } },
+        { key: { text: "Current role" }, value: { text: from } },
+        { key: { text: "New role" }, value: { text: to } }
+      ]
+    }) }}
+
+    {% if promoting %}
+      <p class="govuk-body">{{ person.name }} will be able to add, change and remove other people's access to {{ holding.name }}, as well as work on it.</p>
+    {% else %}
+      <p class="govuk-body">{{ person.name }} will still be able to work on {{ holding.name }}, but will no longer be able to add, change or remove anyone's access to it.</p>
+    {% endif %}
+    <p class="govuk-body">The change takes effect straight away. {{ person.name }}'s role on any other holdings will not change.</p>
+
+    {{ govukInsetText({ text: "To be confirmed: whether we tell " + person.name + " and the other administrators about this change, and how." }) }}
+
+    <form method="post" action="/people/{{ person.id }}/role/confirm" novalidate>
+      <input type="hidden" name="changeCph" value="{{ holding.cph }}">
+      <input type="hidden" name="changeTo" value="{{ toSlug }}">
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Confirm role change" }) }}
+        <a class="govuk-link" href="/people/{{ person.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

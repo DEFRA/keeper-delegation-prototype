@@ -1,0 +1,48 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Who do you want to add?" %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/add/role" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    <span class="govuk-caption-l">Add a {{ data.newPersonRole | lower }}</span>
+    <h1 class="govuk-heading-l">Who do you want to add?</h1>
+
+    <form method="post" novalidate>
+      {{ govukInput({
+        label: { text: "Full name", classes: "govuk-label--s" },
+        id: "newPersonName",
+        name: "newPersonName",
+        autocomplete: "off",
+        spellcheck: false,
+        value: data.newPersonName,
+        errorMessage: { text: errors.newPersonName } if errors and errors.newPersonName
+      }) }}
+
+      {{ govukInput({
+        label: { text: "Email address", classes: "govuk-label--s" },
+        hint: { text: "We will send their invitation here. They must sign in with this email address." },
+        id: "newPersonEmail",
+        name: "newPersonEmail",
+        type: "email",
+        autocomplete: "off",
+        spellcheck: false,
+        value: data.newPersonEmail,
+        errorMessage: { text: errors.newPersonEmail } if errors and errors.newPersonEmail
+      }) }}
+
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

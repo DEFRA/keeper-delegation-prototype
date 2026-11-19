@@ -1,0 +1,113 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = person.name %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back to people", href: "/people" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if flash %}
+      {{ govukNotificationBanner({ type: "success", text: flash }) }}
+    {% endif %}
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ person.name }}{% if isSelf %} (you){% endif %}</h1>
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "Email address" }, value: { text: person.email } },
+        { key: { text: "Status" }, value: { html: '<strong class="govuk-tag ' + (person.status | tagClass) + '">' + person.status + '</strong>' } },
+        { key: { text: "Last signed in" }, value: { text: (person.lastSignIn | formatDateTime) or "Not yet" } },
+        { key: { text: "Added by" }, value: { text: person.addedBy } },
+        { key: { text: "Added on" }, value: { text: person.addedOn | formatDate } },
+        { key: { text: "Invitation expires" }, value: { text: person.expiresOn | formatDate } } if person.status == "Invited"
+      ] | select
+    }) }}
+
+  </div>
+</div>
+
+<h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status == "Invited" else "Holdings and roles" }}</h2>
+
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Holding</th>
+      <th scope="col" class="govuk-table__header">Role</th>
+      <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Actions</span></th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for h in person.holdingsList %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }}</span></td>
+      <td class="govuk-table__cell">{{ h.role }}</td>
+      <td class="govuk-table__cell govuk-table__cell--numeric">
+        {% if h.canManage %}
+          <a class="govuk-link govuk-!-margin-right-3" href="/people/{{ person.id }}/role?cph={{ h.cph | urlencode }}">{{ "Make delegate" if h.role == "Keeper administrator" else "Make keeper administrator" }}<span class="govuk-visually-hidden"> on {{ h.name }}</span></a>
+          <a class="govuk-link" href="/people/{{ person.id }}/revoke?cph={{ h.cph | urlencode }}">Revoke<span class="govuk-visually-hidden"> access to {{ h.name }}</span></a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if person.status == "Invited" %}
+      <p class="govuk-body">{{ person.name }} cannot access {{ currentBusiness.name }} until they accept the invitation and complete the enrolment checks.</p>
+      {{ govukInsetText({
+        html: 'Prototype only: <a class="govuk-link" href="/invitation?id=' + person.id + '">open the invitation as ' + person.name + '</a>.'
+      }) }}
+      {{ govukButton({ text: "Withdraw invitation", href: "/people/" + person.id + "/withdraw", classes: "govuk-button--secondary" }) }}
+    {% elif isSelf %}
+      <p class="govuk-body">You cannot change your own role or revoke your own access.</p>
+    {% else %}
+      {% if canRevoke %}
+        {{ govukButton({ text: "Revoke access", href: "/people/" + person.id + "/revoke", classes: "govuk-button--warning" }) }}
+      {% endif %}
+      {% if person.role == "CPH holder" %}
+        <p class="govuk-body">The CPH holder role comes from the CPH record, so it cannot be changed or removed here.</p>
+      {% elif someOutOfScope %}
+        <p class="govuk-body">You can only change roles on holdings where you are a CPH holder or keeper administrator.</p>
+      {% endif %}
+    {% endif %}
+
+    <h2 class="govuk-heading-m">Activity</h2>
+    {% if history.length %}
+      <table class="govuk-table">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">When</th>
+            <th scope="col" class="govuk-table__header">What happened</th>
+            <th scope="col" class="govuk-table__header">Outcome</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for entry in history %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell govuk-body-s">{{ entry.at | formatDateTime }}</td>
+            <td class="govuk-table__cell">
+              {{ entry.action }}{% if entry.actorEmail != person.email %} by {{ entry.actorName }}{% endif %}
+              {% if entry.holding %}<span class="govuk-body-s app-table-secondary">Holding: {{ entry.holding }}</span>{% endif %}
+            </td>
+            <td class="govuk-table__cell"><strong class="govuk-tag {{ entry.outcome | tagClass }}">{{ entry.outcome }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="govuk-body">No activity yet.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

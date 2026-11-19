@@ -1,0 +1,43 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Which holdings can they work on?" %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/add/details" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    {% set items = [] %}
+    {% for holding in holdings %}
+      {% set items = (items.push({
+        value: holding.cph,
+        text: holding.name + " (" + holding.cph + ")",
+        hint: { text: holding.address }
+      }), items) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {{ govukCheckboxes({
+        name: "newPersonHoldings",
+        fieldset: {
+          legend: { html: '<span class="govuk-caption-l">Add a ' + (data.newPersonRole | lower) + '</span>Which holdings can ' + data.newPersonName + ' work on?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        hint: { text: "Select all that apply. They will be a " + (data.newPersonRole | lower) + " on each holding you select, and will not be able to see the others. You can only choose holdings you manage." },
+        items: items,
+        values: data.newPersonHoldings,
+        errorMessage: { text: errors.newPersonHoldings } if errors and errors.newPersonHoldings
+      }) }}
+
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

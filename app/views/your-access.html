@@ -1,0 +1,76 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Your access" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">{{ currentUser.name }}</span>
+    <h1 class="govuk-heading-l">Your access</h1>
+    <p class="govuk-body">These are the businesses and holdings you can work on, and your role on each holding.</p>
+
+    {% if not relationships.length %}
+      <p class="govuk-body">You do not have access to any businesses or holdings at the moment.</p>
+      <p class="govuk-body">If you think this is wrong, contact the CPH holder or a keeper administrator for the business.</p>
+    {% endif %}
+
+    {% for rel in relationships %}
+      <div class="govuk-summary-card">
+        <div class="govuk-summary-card__title-wrapper">
+          <h2 class="govuk-summary-card__title">{{ rel.businessName }}</h2>
+          {% if not (currentBusiness and currentBusiness.id == rel.businessId) %}
+          <ul class="govuk-summary-card__actions">
+            <li class="govuk-summary-card__action">
+              <form method="post" action="/choose-business" novalidate>
+                <input type="hidden" name="chosenBusiness" value="{{ rel.businessId }}">
+                <button type="submit" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-module="govuk-button">
+                  Work for this business<span class="govuk-visually-hidden"> ({{ rel.businessName }})</span>
+                </button>
+              </form>
+            </li>
+          </ul>
+          {% else %}
+          <ul class="govuk-summary-card__actions"><li class="govuk-summary-card__action"><strong class="govuk-tag govuk-tag--blue">Working for now</strong></li></ul>
+          {% endif %}
+        </div>
+        <div class="govuk-summary-card__content">
+          <table class="govuk-table govuk-!-margin-bottom-2">
+            <caption class="govuk-table__caption govuk-visually-hidden">Your holdings for {{ rel.businessName }}</caption>
+            <thead class="govuk-table__head">
+              <tr class="govuk-table__row">
+                <th scope="col" class="govuk-table__header">Holding</th>
+                <th scope="col" class="govuk-table__header">Your role</th>
+              </tr>
+            </thead>
+            <tbody class="govuk-table__body">
+              {% for h in rel.holdingsList %}
+              <tr class="govuk-table__row">
+                <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }}</span></td>
+                <td class="govuk-table__cell">{{ h.role }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          <p class="govuk-body-s govuk-!-margin-bottom-0">Given by {{ rel.addedBy }} on {{ rel.addedOn | formatDate }}</p>
+        </div>
+      </div>
+    {% endfor %}
+
+    {% if invitations.length %}
+      <h2 class="govuk-heading-m">Invitations waiting for you</h2>
+      <ul class="govuk-list">
+        {% for inv in invitations %}
+          <li><a class="govuk-link" href="/invitation?id={{ inv.id }}">{{ inv.businessName }}</a> – {{ inv.roleLabel | lower }} on {{ inv.holdingsLabel }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% set roleHtml %}{% include "includes/role-descriptions.html" %}{% endset %}
+    {{ govukDetails({ summaryText: "What each role can do", html: roleHtml }) }}
+
+  </div>
+</div>
+
+{% endblock %}

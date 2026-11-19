@@ -1,0 +1,43 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Activity" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">Activity</h1>
+    <p class="govuk-body">A record of who has been given access, any requests that were turned down, and what people have done on your holdings. Newest first.</p>
+  </div>
+</div>
+
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">When</th>
+      <th scope="col" class="govuk-table__header">Who</th>
+      <th scope="col" class="govuk-table__header">What happened</th>
+      <th scope="col" class="govuk-table__header">Details</th>
+      <th scope="col" class="govuk-table__header">Outcome</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for entry in entries %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell govuk-body-s">{{ entry.at | formatDateTime }}</td>
+      <td class="govuk-table__cell">{{ entry.actorName }}</td>
+      <td class="govuk-table__cell">{{ entry.action }}</td>
+      <td class="govuk-table__cell govuk-body-s">
+        {% if entry.recipientName %}<span class="app-table-secondary">Person: {{ entry.recipientName }}</span>{% endif %}
+        {% if entry.role %}<span class="app-table-secondary">Role: {{ entry.role }}</span>{% endif %}
+        {% if entry.holding %}<span class="app-table-secondary">Holding: {{ entry.holding }}</span>{% endif %}
+        {% if entry.detail %}<span class="app-table-secondary">{{ entry.detail }}</span>{% endif %}
+      </td>
+      <td class="govuk-table__cell"><strong class="govuk-tag {{ entry.outcome | tagClass }}">{{ entry.outcome }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

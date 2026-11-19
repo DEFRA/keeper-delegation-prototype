@@ -1,0 +1,17 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "You have declined the invitation" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">You have declined the invitation</h1>
+    <p class="govuk-body">You will not have access to {{ invitation.businessName }}.</p>
+    <p class="govuk-body">{{ invitation.addedBy }} can see that you declined.</p>
+
+  </div>
+</div>
+
+{% endblock %}

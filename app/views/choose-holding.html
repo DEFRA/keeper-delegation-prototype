@@ -1,0 +1,39 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Which holding are you working on?" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    {% set items = [] %}
+    {% for holding in holdings %}
+      {% set items = (items.push({
+        value: holding.cph,
+        text: holding.name + " (" + holding.cph + ")",
+        hint: { text: holding.address },
+        checked: currentHolding and currentHolding.cph == holding.cph
+      }), items) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {{ govukRadios({
+        name: "chosenHolding",
+        fieldset: {
+          legend: { html: '<span class="govuk-caption-l">' + currentBusiness.name + '</span>Which holding are you working on?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        hint: { text: "You can only see holdings you have been given access to." },
+        items: items,
+        errorMessage: { text: errors.chosenHolding } if errors and errors.chosenHolding
+      }) }}
+
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

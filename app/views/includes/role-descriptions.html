@@ -1,0 +1,17 @@
+<p class="govuk-body">Roles are given per holding, so someone can be a keeper administrator on one holding and a delegate on another.</p>
+{{ govukSummaryList({
+  rows: [
+    {
+      key: { text: "CPH holder" },
+      value: { text: "The person registered as the CPH holder for the business. Has full control of every holding, including appointing keeper administrators and delegates. This role comes from the CPH record and cannot be given to someone else here." }
+    },
+    {
+      key: { text: "Keeper administrator" },
+      value: { text: "Appointed by a CPH holder or another keeper administrator. On the holdings where they have this role, they can manage who has access and look after livestock records." }
+    },
+    {
+      key: { text: "Delegate" },
+      value: { text: "A trusted person who helps with day-to-day livestock tasks. Can only work on the holdings they have been given access to. Cannot add, change or remove anyone's access." }
+    }
+  ]
+}) }}

@@ -1,0 +1,39 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Which business are you working for?" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    {% set items = [] %}
+    {% for choice in choices %}
+      {% set items = (items.push({
+        value: choice.businessId,
+        text: choice.businessName,
+        hint: { text: choice.roleLabel + " – " + choice.holdingsLabel },
+        checked: currentBusiness and currentBusiness.id == choice.businessId
+      }), items) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {{ govukRadios({
+        name: "chosenBusiness",
+        fieldset: {
+          legend: { text: "Which business are you working for?", isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        hint: { text: "You can only see businesses that have given you access." },
+        items: items,
+        errorMessage: { text: errors.chosenBusiness } if errors and errors.chosenBusiness
+      }) }}
+
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

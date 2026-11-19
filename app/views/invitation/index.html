@@ -1,0 +1,47 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "You have been invited to help with " + invitation.businessName %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {{ govukInsetText({ text: "Prototype only: this is the page the link in the invitation email opens." }) }}
+
+    <span class="govuk-caption-l">Invitation for {{ invitation.name }}</span>
+    <h1 class="govuk-heading-l">{{ invitation.addedBy }} has invited you to help with {{ invitation.businessName }}</h1>
+
+    {% set holdingsHtml %}
+      <ul class="govuk-list">
+        {% for h in invitation.holdingsList %}<li>{{ h.name }} ({{ h.cph }}){% if invitation.mixedRoles %} – {{ h.role | lower }}{% endif %}</li>{% endfor %}
+      </ul>
+    {% endset %}
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "Business" }, value: { text: invitation.businessName } },
+        { key: { text: "Role" }, value: { text: invitation.roleLabel } },
+        { key: { text: "Holdings" }, value: { html: holdingsHtml } },
+        { key: { text: "Invited by" }, value: { text: invitation.addedBy } },
+        { key: { text: "Expires" }, value: { text: invitation.expiresOn | formatDate } }
+      ]
+    }) }}
+
+    {% if invitation.role == "Delegate" %}
+      <p class="govuk-body">As a delegate you will be able to work on livestock records for these holdings. You will not be able to add, change or remove anyone's access.</p>
+    {% else %}
+      <p class="govuk-body">As a keeper administrator you will be able to work on these holdings and manage who has access to them, including appointing other keeper administrators and delegates.</p>
+    {% endif %}
+
+    <p class="govuk-body">To accept, you need to sign in and complete some checks. You will not have access until you have done this.</p>
+
+    <div class="govuk-button-group">
+      {{ govukButton({ text: "Accept invitation", href: "/invitation/enrol?id=" + invitation.id }) }}
+      {{ govukButton({ text: "Decline", href: "/invitation/decline?id=" + invitation.id, classes: "govuk-button--secondary" }) }}
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

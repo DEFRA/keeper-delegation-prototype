@@ -1,0 +1,44 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "What role do you want to give this person?" %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    <form method="post" novalidate>
+      {{ govukRadios({
+        name: "newPersonRole",
+        fieldset: {
+          legend: { html: '<span class="govuk-caption-l">Add a person to ' + currentBusiness.name + '</span>What role do you want to give this person?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        items: [
+          {
+            value: "Keeper administrator",
+            text: "Keeper administrator",
+            hint: { text: "Can manage who has access to the holdings you choose, including appointing other keeper administrators and delegates, as well as working on them." }
+          },
+          {
+            value: "Delegate",
+            text: "Delegate",
+            hint: { text: "Can help with day-to-day livestock tasks on the holdings you choose. Cannot manage who has access." }
+          }
+        ],
+        value: data.newPersonRole,
+        errorMessage: { text: errors.newPersonRole } if errors and errors.newPersonRole
+      }) }}
+
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

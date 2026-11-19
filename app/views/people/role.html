@@ -1,0 +1,50 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Change " + person.name + "'s role on " + holding.name %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    <form method="post" novalidate>
+      <input type="hidden" name="changeCph" value="{{ holding.cph }}">
+
+      {{ govukRadios({
+        name: "newRole",
+        fieldset: {
+          legend: { html: '<span class="govuk-caption-l">' + holding.name + ' (' + holding.cph + ')</span>What role should ' + person.name + ' have on this holding?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        hint: { text: "They are currently a " + (from | lower) + " on this holding. Their role on other holdings will not change." },
+        items: [
+          {
+            value: "Keeper administrator",
+            text: "Keeper administrator",
+            hint: { text: "Can manage who has access to this holding, as well as work on it." }
+          },
+          {
+            value: "Delegate",
+            text: "Delegate",
+            hint: { text: "Can work on this holding. Cannot add, change or remove anyone's access." }
+          }
+        ],
+        value: ("Delegate" if from == "Keeper administrator" else "Keeper administrator") if not errors,
+        errorMessage: { text: errors.newRole } if errors and errors.newRole
+      }) }}
+
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Continue" }) }}
+        <a class="govuk-link" href="/people/{{ person.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

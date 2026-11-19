@@ -1,0 +1,28 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Invitation sent" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {{ govukPanel({
+      titleText: "Invitation sent",
+      html: "We have sent an invitation to<br><strong>" + person.email + "</strong>"
+    }) }}
+
+    <h2 class="govuk-heading-m">What happens next</h2>
+    <p class="govuk-body">{{ person.name }} will show as <strong>invited</strong> until they accept. Once they have signed in and completed the enrolment checks, they will be able to work as a {{ person.role | lower }} for {{ person.businessName }} on {{ person.holdingsLabel | lower if person.holdingsLabel == "All holdings" else person.holdingsLabel }}.</p>
+    <p class="govuk-body">The invitation expires on {{ person.expiresOn | formatDate }}. You can withdraw it from their page in <a class="govuk-link" href="/people">people with access</a> until they accept.</p>
+
+    {{ govukInsetText({
+      html: 'Prototype only: <a class="govuk-link" href="/invitation?id=' + person.id + '">open the invitation as ' + person.name + '</a>.'
+    }) }}
+
+    <p class="govuk-body"><a class="govuk-link" href="/people">Go back to people with access</a></p>
+
+  </div>
+</div>
+
+{% endblock %}

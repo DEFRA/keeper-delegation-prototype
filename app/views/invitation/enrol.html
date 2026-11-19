@@ -1,0 +1,49 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Confirm your details" %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/invitation?id=" + invitation.id }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    <span class="govuk-caption-l">Accept invitation</span>
+    <h1 class="govuk-heading-l">Confirm your details</h1>
+
+    {{ govukInsetText({ text: "Prototype only: in the live service you would sign in and prove your identity here. The enrolment checks have not been agreed yet." }) }}
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "Full name" }, value: { text: invitation.name } },
+        { key: { text: "Email address" }, value: { text: invitation.email } }
+      ]
+    }) }}
+
+    <form method="post" novalidate>
+      <input type="hidden" name="invitationId" value="{{ invitation.id }}">
+
+      {{ govukCheckboxes({
+        name: "enrolDeclaration",
+        fieldset: { legend: { text: "Declaration", classes: "govuk-fieldset__legend--m" } },
+        items: [
+          {
+            value: "yes",
+            text: "I confirm these details are correct. I understand I will be acting on behalf of " + invitation.businessName + " and that everything I do will be recorded against my name."
+          }
+        ],
+        errorMessage: { text: errors.enrolDeclaration } if errors and errors.enrolDeclaration
+      }) }}
+
+      {{ govukButton({ text: "Confirm and continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = currentHolding.name %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% if flash %}
+      {{ govukNotificationBanner({ type: "success", text: flash }) }}
+    {% endif %}
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ currentHolding.name }}</h1>
+
+    {{ govukSummaryList({
+      rows: [
+        {
+          key: { text: "CPH number" },
+          value: { text: currentHolding.cph },
+          actions: { items: [{ href: "/choose-holding", text: "Change", visuallyHiddenText: "holding" }] } if canChangeHolding
+        },
+        { key: { text: "Address" }, value: { text: currentHolding.address } },
+        { key: { text: "Acting for" }, value: { text: currentBusiness.name } },
+        { key: { text: "Your role on this holding" }, value: { text: currentRole } }
+      ]
+    }) }}
+
+    {{ govukInsetText({
+      text: "Everything you do here is recorded against your name and this holding, so the business can see who did what."
+    }) }}
+
+    {% if canManageHolding %}
+      <p class="govuk-body"><a class="govuk-link" href="/people?holding={{ currentHolding.cph | urlencode }}">Manage who can act on this holding</a></p>
+    {% else %}
+      <p class="govuk-body">You cannot add, change or remove anyone's access to this holding. If someone else needs access, ask a keeper administrator.</p>
+    {% endif %}
+
+    <h2 class="govuk-heading-m">Record livestock activity</h2>
+
+    {{ govukInsetText({
+      text: "Prototype only: this stands in for the livestock record tasks, to show how actions are recorded."
+    }) }}
+
+    {% set recordItems = [] %}
+    {% for type in recordTypes %}
+      {% set recordItems = (recordItems.push({ value: type, text: type }), recordItems) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {{ govukRadios({
+        name: "recordType",
+        classes: "govuk-radios--small",
+        fieldset: { legend: { text: "What do you want to record?", classes: "govuk-fieldset__legend--s" } },
+        items: recordItems
+      }) }}
+      {{ govukButton({ text: "Record", classes: "govuk-button--secondary" }) }}
+    </form>
+
+    <h2 class="govuk-heading-m">Your recent activity on this holding</h2>
+    {% if recent.length %}
+      <table class="govuk-table">
+        <thead class="govuk-table__head">
+          <tr class="govuk-table__row">
+            <th scope="col" class="govuk-table__header">When</th>
+            <th scope="col" class="govuk-table__header">What you did</th>
+          </tr>
+        </thead>
+        <tbody class="govuk-table__body">
+          {% for entry in recent %}
+          <tr class="govuk-table__row">
+            <td class="govuk-table__cell">{{ entry.at | formatDateTime }}</td>
+            <td class="govuk-table__cell">{{ entry.action }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="govuk-body">You have not done anything on this holding yet.</p>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

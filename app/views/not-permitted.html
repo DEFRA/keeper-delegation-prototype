@@ -1,0 +1,21 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "You do not have permission to do this" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">You do not have permission to do this</h1>
+
+    <p class="govuk-body">As a {{ currentRelationship.role | lower }} for {{ currentBusiness.name }}, you cannot {{ attempted }}.</p>
+    <p class="govuk-body">Only the CPH holder and keeper administrators can add, change or remove keeper administrators and delegates.</p>
+    <p class="govuk-body">We have recorded this attempt.</p>
+
+    <p class="govuk-body"><a class="govuk-link" href="/holding">Go back to your holding</a></p>
+
+  </div>
+</div>
+
+{% endblock %}

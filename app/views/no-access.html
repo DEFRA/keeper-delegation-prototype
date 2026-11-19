@@ -1,0 +1,41 @@
+{% extends "layouts/main.html" %}
+
+{% if invitation %}
+  {% set pageName = "You need to accept your invitation first" %}
+{% else %}
+  {% set pageName = "You cannot use this service with this email address" %}
+{% endif %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">{{ pageName }}</h1>
+
+    {% if invitation %}
+
+      <p class="govuk-body">{{ invitation.addedBy }} has invited <strong>{{ email }}</strong> to help with their livestock business.</p>
+      <p class="govuk-body">You cannot access the business until you have accepted the invitation and completed the enrolment checks. Use the link in your invitation email to do this.</p>
+
+      {{ govukInsetText({
+        html: 'Prototype only: <a class="govuk-link" href="/invitation?id=' + invitation.id + '">open the invitation email link</a>.'
+      }) }}
+
+    {% else %}
+
+      <p class="govuk-body">We could not find a CPH holder record that matches <strong>{{ email }}</strong>, and nobody has given this email address access to a business.</p>
+
+      <h2 class="govuk-heading-m">What you can do</h2>
+      <ul class="govuk-list govuk-list--bullet">
+        <li><a class="govuk-link" href="/sign-in">sign in with a different email address</a>, if you have one registered on your CPH record</li>
+        <li>if you want to help someone with their business, ask them to invite you</li>
+        <li>if you think your CPH record has the wrong email address, contact the helpline to update it</li>
+      </ul>
+
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

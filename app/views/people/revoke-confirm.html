@@ -1,0 +1,43 @@
+{% extends "layouts/main.html" %}
+
+{% set heading = "Are you sure you want to revoke " + person.name + "'s access?" %}
+{% set pageName = heading %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id + "/revoke" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    <p class="govuk-body">{{ person.name }} will no longer be able to work on:</p>
+    <ul class="govuk-list govuk-list--bullet">
+      {% for h in holdings %}<li>{{ h.name }} ({{ h.cph }}) – {{ h.role | lower }}</li>{% endfor %}
+    </ul>
+
+    {% if removesAll %}
+      {{ govukWarningText({ text: "This removes all of " + person.name + "'s access to " + currentBusiness.name + ". They would need a new invitation to get it back." }) }}
+    {% else %}
+      <p class="govuk-body">They will keep their access to the other holdings at {{ currentBusiness.name }}.</p>
+    {% endif %}
+    <p class="govuk-body">This does not affect any access {{ person.name }} has to other businesses.</p>
+
+    {{ govukInsetText({ text: "To be confirmed: whether we tell " + person.name + " and the other administrators, and whether revoked access stays visible with a status of Revoked." }) }}
+
+    <form method="post" action="/people/{{ person.id }}/revoke/confirm" novalidate>
+      {% for h in holdings %}<input type="hidden" name="revokeCph" value="{{ h.cph }}">{% endfor %}
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Revoke access", classes: "govuk-button--warning" }) }}
+        <a class="govuk-link" href="/people/{{ person.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

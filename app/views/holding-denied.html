@@ -1,0 +1,21 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "You do not have access to this holding" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">You do not have access to this holding</h1>
+
+    <p class="govuk-body">{{ currentBusiness.name }} has not given you access to holding {{ cph }}.</p>
+    <p class="govuk-body">You can only work on the holdings you have been given access to. If you need access to this holding, ask a keeper administrator for {{ currentBusiness.name }}.</p>
+    <p class="govuk-body">We have recorded this attempt.</p>
+
+    <p class="govuk-body"><a class="govuk-link" href="/choose-holding">Choose a holding you have access to</a></p>
+
+  </div>
+</div>
+
+{% endblock %}

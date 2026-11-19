@@ -1,0 +1,46 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = ("Error: " if errors else "") + "Which holdings do you want to revoke " + person.name + "'s access to?" %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    {% set items = [] %}
+    {% for h in holdings %}
+      {% set items = (items.push({
+        value: h.cph,
+        text: h.name + " (" + h.cph + ")",
+        hint: { text: h.role },
+        checked: h.cph in preselected
+      }), items) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {{ govukCheckboxes({
+        name: "revokeHoldings",
+        fieldset: {
+          legend: { html: '<span class="govuk-caption-l">' + currentBusiness.name + '</span>Which holdings do you want to revoke ' + person.name + '\'s access to?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+        },
+        hint: { text: "Select all that apply. You can only revoke access to holdings you manage." },
+        items: items,
+        errorMessage: { text: errors.revokeHoldings } if errors and errors.revokeHoldings
+      }) }}
+
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Continue" }) }}
+        <a class="govuk-link" href="/people/{{ person.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

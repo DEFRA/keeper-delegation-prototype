@@ -1,0 +1,71 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = currentBusiness.name %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">Business overview</span>
+    <h1 class="govuk-heading-l">{{ currentBusiness.name }}</h1>
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "SBI" }, value: { text: currentBusiness.sbi } },
+        { key: { text: "Your role" }, value: { text: currentRelationship.roleLabel } }
+      ]
+    }) }}
+
+  </div>
+</div>
+
+<h2 class="govuk-heading-m">Your holdings</h2>
+
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">CPH number</th>
+      <th scope="col" class="govuk-table__header">Name and address</th>
+      <th scope="col" class="govuk-table__header">Your role</th>
+      <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Actions</span></th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for holding in holdings %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">{{ holding.cph }}</td>
+      <td class="govuk-table__cell">
+        {{ holding.name }}
+        <span class="govuk-body-s app-table-secondary">{{ holding.address }}</span>
+      </td>
+      <td class="govuk-table__cell">{{ holding.role }}</td>
+      <td class="govuk-table__cell govuk-table__cell--numeric">
+        <a class="govuk-link" href="/holding?cph={{ holding.cph | urlencode }}">Work on this holding<span class="govuk-visually-hidden"> ({{ holding.name }})</span></a>
+        {% if holding.cph in adminCphs %}
+          <span class="govuk-body-s app-table-secondary"><a class="govuk-link" href="/people?holding={{ holding.cph | urlencode }}">Manage who can act on it<span class="govuk-visually-hidden"> ({{ holding.name }})</span></a></span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h2 class="govuk-heading-m">People with access</h2>
+    <p class="govuk-body">
+      {{ activeCount }} {{ "person has" if activeCount == 1 else "people have" }} access to this business.
+      {% if invitedCount %}{{ invitedCount }} {{ "invitation is" if invitedCount == 1 else "invitations are" }} waiting to be accepted.{% endif %}
+    </p>
+    <p class="govuk-body"><a class="govuk-link" href="/people">Manage who has access</a></p>
+
+    <h2 class="govuk-heading-m">Activity</h2>
+    <p class="govuk-body">See who has been given access, who has had it removed and what people have done on your holdings.</p>
+    <p class="govuk-body"><a class="govuk-link" href="/activity">View activity</a></p>
+
+  </div>
+</div>
+
+{% endblock %}

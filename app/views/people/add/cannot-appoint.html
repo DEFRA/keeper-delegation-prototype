@@ -1,0 +1,39 @@
+{% extends "layouts/main.html" %}
+
+{% if reason == "self" %}
+  {% set pageName = "You cannot add yourself" %}
+{% elif reason == "existing" %}
+  {% set pageName = "This person already has access to " + currentBusiness.name %}
+{% else %}
+  {% set pageName = "We cannot give this person access" %}
+{% endif %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/add/details" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">{{ pageName }}</h1>
+
+    {% if reason == "self" %}
+      <p class="govuk-body">You already have access to {{ currentBusiness.name }}.</p>
+    {% elif reason == "existing" %}
+      <p class="govuk-body">This email address already has access to {{ currentBusiness.name }}, or has an invitation waiting. You can see their role on the people page.</p>
+    {% else %}
+      <p class="govuk-body">The person you nominated does not meet the eligibility and validation rules for this role, so we cannot give them access to {{ currentBusiness.name }}.</p>
+      {{ govukInsetText({ text: "Prototype only: the eligibility rules have not been agreed yet. In this prototype, blocked@example.com always fails." }) }}
+    {% endif %}
+
+    <p class="govuk-body">We have recorded this in the activity log.</p>
+
+    <p class="govuk-body"><a class="govuk-link" href="/people/add/details">Enter different details</a></p>
+    <p class="govuk-body"><a class="govuk-link" href="/people">Go back to people with access</a></p>
+
+  </div>
+</div>
+
+{% endblock %}

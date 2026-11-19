@@ -1,19 +1,95 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName="Home" %}
+{% set pageName = "Prototype index" %}
 
 {% block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    {% include "govuk-prototype-kit/includes/homepage-top.njk" %}
+    <span class="govuk-caption-l">LKPR-439</span>
+    <h1 class="govuk-heading-xl">Keeper delegation prototype</h1>
 
-    <h1 class="govuk-heading-xl">
-      {{ serviceName }}
-    </h1>
+    <p class="govuk-body">An early prototype for walking through the delegation foundations epic (LKPR-402): roles, permissions, CPH scope and eligibility.</p>
 
-    {% include "govuk-prototype-kit/includes/homepage-bottom.njk" %}
+    {{ govukButton({ text: "Start the service", href: "/start", isStartButton: true }) }}
+
+    <h2 class="govuk-heading-m">People you can sign in as</h2>
+    <p class="govuk-body">Sign in with any of these email addresses. There is no password.</p>
+  </div>
+</div>
+
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Email address</th>
+      <th scope="col" class="govuk-table__header">Who they are</th>
+      <th scope="col" class="govuk-table__header">Try</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">mary.evans@example.com</td>
+      <td class="govuk-table__cell">CPH holder for Greenacre Farm, signing in for the first time</td>
+      <td class="govuk-table__cell">CPH holder role granted from SAM (US-EXT-01)</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">jane.smith@example.com</td>
+      <td class="govuk-table__cell">CPH holder for Hillside Farm Ltd</td>
+      <td class="govuk-table__cell">See who has access (LKPR-436), appoint a keeper administrator or delegate (US-KA-01, LKPR-423), promote or demote per holding (LKPR-433, LKPR-438), revoke per holding (US-KA-04), withdraw Priya's invitation</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">sam.jones@example.com</td>
+      <td class="govuk-table__cell">Keeper administrator on all Hillside Farm Ltd holdings</td>
+      <td class="govuk-table__cell">Same as a CPH holder, but appointed by Jane. Cannot change Jane's CPH holder role</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">lucy.hart@example.com</td>
+      <td class="govuk-table__cell">Keeper administrator on Hillside Farm, delegate on Brook Field</td>
+      <td class="govuk-table__cell">Mixed roles. On Tom's page she can only change his role on Hillside Farm, not Lower Meadow</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">alan.green@example.com</td>
+      <td class="govuk-table__cell">CPH holder for Meadow View Farms and a delegate on Brook Field for Hillside Farm Ltd</td>
+      <td class="govuk-table__cell">Your access shows both businesses with his role on each holding (LKPR-437)</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">tom.brown@example.com</td>
+      <td class="govuk-table__cell">Delegate for 2 holdings at Hillside Farm Ltd and 1 at Meadow View Farms</td>
+      <td class="govuk-table__cell">Choose business and holding, record activity (US-DEL-01). Try the <a class="govuk-link" href="/people">People page</a> to see the restriction (US-DEL-02)</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">priya.patel@example.com</td>
+      <td class="govuk-table__cell">Invited as a delegate but has not accepted yet</td>
+      <td class="govuk-table__cell">Cannot get in until enrolment is done. <a class="govuk-link" href="/invitation?id=r6">Open Priya's invitation</a> to accept or decline it (LKPR-423)</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">any other email address</td>
+      <td class="govuk-table__cell">Not in SAM and not invited</td>
+      <td class="govuk-table__cell">CPH holder role not granted (US-EXT-01)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h2 class="govuk-heading-m">Other things to try</h2>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>As Jane, add <strong>blocked@example.com</strong> to see an ineligible appointment being rejected (US-KA-01 AC2)</li>
+      <li>As Jane, open Tom and make him a keeper administrator on Lower Meadow only. Sign in as Tom to see he now has the People page, but can only manage Lower Meadow (LKPR-433)</li>
+      <li>As Jane, open Sam and make him a delegate on Brook Field. His other holdings stay keeper administrator (LKPR-438)</li>
+      <li>As Jane, open Lower Meadow from the business overview and choose "Manage who can act on it" (LKPR-433 route 2)</li>
+      <li>As Jane, revoke Tom's access to Hillside Farm only, then revoke the rest. Sign in as Tom to see he still has Meadow View Farms (US-KA-04, US-DEL-01)</li>
+      <li>As Tom at Hillside Farm Ltd, <a class="govuk-link" href="/holding?cph=12%2F346%2F0103">try to open Brook Field</a>, a holding he has not been given (LKPR-420)</li>
+    </ul>
+
+    <h2 class="govuk-heading-m">Stories covered</h2>
+    <p class="govuk-body">Epic LKPR-402: US-EXT-01 (LKPR-391), US-KA-01 (LKPR-392), US-KA-03 (LKPR-394), US-DEL-01 (LKPR-396), US-DEL-02 (LKPR-397), LKPR-420.</p>
+    <p class="govuk-body">Epic LKPR-403: Invite a Delegate (LKPR-423).</p>
+    <p class="govuk-body">Epic LKPR-404: US-KA-04 Remove access (LKPR-395), US-KA-07 Promote (LKPR-433), View delegated relationships (LKPR-436), View access delegated to me (LKPR-437), Demote (LKPR-438).</p>
+
+    <h2 class="govuk-heading-m">Reset</h2>
+    <p class="govuk-body"><a class="govuk-link" href="/manage-prototype/clear-data">Clear data</a> to put everything back to how it started.</p>
   </div>
 </div>
 
