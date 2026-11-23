@@ -16,8 +16,51 @@
   <div class="govuk-grid-column-two-thirds">
     <h2 class="govuk-heading-m">Activity</h2>
     <p class="govuk-body">A record of who has been given access, any requests that were turned down, and what people have done on your holdings. Newest first.</p>
+
+    {% set personItems = [{ value: "", text: "Everyone" }] %}
+    {% for p in people %}
+      {% set personItems = (personItems.push({ value: p.id, text: p.name, selected: person and person.id == p.id }), personItems) %}
+    {% endfor %}
+    {% set holdingItems = [{ value: "", text: "All holdings" }] %}
+    {% for h in holdings %}
+      {% set holdingItems = (holdingItems.push({ value: h.cph, text: h.name + " (" + h.cph + ")", selected: holding and holding.cph == h.cph }), holdingItems) %}
+    {% endfor %}
+
+    <form method="get" action="/activity" novalidate class="govuk-!-margin-bottom-4">
+      <div class="app-table-search__row">
+        {{ govukSelect({
+          id: "person",
+          name: "person",
+          label: { text: "Person", classes: "govuk-label--s" },
+          items: personItems,
+          formGroup: { classes: "govuk-!-margin-bottom-0" }
+        }) }}
+        {% if holdings.length > 1 %}
+        {{ govukSelect({
+          id: "holding",
+          name: "holding",
+          label: { text: "Holding", classes: "govuk-label--s" },
+          items: holdingItems,
+          formGroup: { classes: "govuk-!-margin-bottom-0" }
+        }) }}
+        {% endif %}
+        {{ govukButton({ text: "Show activity", classes: "govuk-button--secondary govuk-!-margin-bottom-0" }) }}
+      </div>
+    </form>
+
+    {% if filtered %}
+      <p class="govuk-body" role="status">
+        {{ table.matched }} {{ "entry" if table.matched == 1 else "entries" }}
+        {% if person %} involving {{ person.name }}{% endif %}{% if holding %} on {{ holding.name }}{% endif %}.
+        <a class="govuk-link" href="/activity">Show all activity</a>
+      </p>
+    {% elif table.pagination %}
+      <p class="govuk-body">Showing {{ table.from }} to {{ table.to }} of {{ total }} entries</p>
+    {% endif %}
   </div>
 </div>
+
+{% if table.matched %}
 
 <table class="govuk-table">
   <thead class="govuk-table__head">
@@ -30,7 +73,7 @@
     </tr>
   </thead>
   <tbody class="govuk-table__body">
-    {% for entry in entries %}
+    {% for entry in table.items %}
     <tr class="govuk-table__row">
       <td class="govuk-table__cell govuk-body-s">{{ entry.at | formatDateTime }}</td>
       <td class="govuk-table__cell">{{ entry.actorName }}</td>
@@ -46,5 +89,13 @@
     {% endfor %}
   </tbody>
 </table>
+
+{% if table.pagination %}
+  {% if filtered %}<p class="govuk-body-s app-table-secondary">Showing {{ table.from }} to {{ table.to }} of {{ table.matched }}</p>{% endif %}
+  {{ govukPagination(table.pagination) }}
+{% endif %}
+{% else %}
+<p class="govuk-body">No activity matches these filters.</p>
+{% endif %}
 
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "layouts/main.html" %}
-{% from "includes/filter.html" import appFilter %}
+{% from "includes/table-search.html" import tableSearch, tablePagination %}
 
 {% set pageName = currentBusiness.name %}
 
@@ -21,9 +21,7 @@
 
     <h2 class="govuk-heading-m">Your holdings</h2>
 
-    {% if holdings.length > 8 %}
-      {{ appFilter({ id: "filter-holdings", target: "#business-holdings", items: "tr" }) }}
-    {% endif %}
+    {{ tableSearch(table, "search-holdings") }}
 
   </div>
 </div>
@@ -38,7 +36,7 @@
     </tr>
   </thead>
   <tbody class="govuk-table__body" id="business-holdings">
-    {% for holding in holdings %}
+    {% for holding in table.items %}
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">{{ holding.cph }}</td>
       <td class="govuk-table__cell">
@@ -56,5 +54,7 @@
     {% endfor %}
   </tbody>
 </table>
+
+{{ tablePagination(table) }}
 
 {% endblock %}

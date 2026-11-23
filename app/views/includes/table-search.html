@@ -1,0 +1,39 @@
+{% from "govuk/components/button/macro.njk" import govukButton %}
+{% from "govuk/components/pagination/macro.njk" import govukPagination %}
+{#
+  Search box and results count for a paged table of holdings.
+  table comes from pageHoldings() in routes.js. Works without JavaScript.
+#}
+{% macro tableSearch(table, id) %}
+{% if table.searchable %}
+<form method="get" action="{{ table.action }}" novalidate class="app-table-search">
+  <div class="govuk-form-group govuk-!-margin-bottom-3">
+    <label class="govuk-label govuk-label--s" for="{{ id }}">Search holdings</label>
+    <div class="govuk-hint" id="{{ id }}-hint">Holding name, CPH number, town or role</div>
+    <div class="app-table-search__row">
+      <input class="govuk-input govuk-!-width-two-thirds" id="{{ id }}" name="q" type="search" value="{{ table.q }}" aria-describedby="{{ id }}-hint" autocomplete="off" spellcheck="false">
+      {{ govukButton({ text: "Search", classes: "govuk-button--secondary govuk-!-margin-bottom-0", attributes: { id: id + "-submit" } }) }}
+    </div>
+  </div>
+</form>
+{% endif %}
+{% if table.q %}
+<p class="govuk-body" role="status">
+  {% if table.matched %}
+    {{ table.matched }} {{ "holding matches" if table.matched == 1 else "holdings match" }} ‘{{ table.q }}’.
+  {% else %}
+    No holdings match ‘{{ table.q }}’.
+  {% endif %}
+  <a class="govuk-link" href="{{ table.clearHref }}">Clear search</a>
+</p>
+{% elif table.pagination %}
+<p class="govuk-body">Showing {{ table.from }} to {{ table.to }} of {{ table.total }} holdings</p>
+{% endif %}
+{% endmacro %}
+
+{% macro tablePagination(table) %}
+{% if table.pagination %}
+  {% if table.q %}<p class="govuk-body-s app-table-secondary">Showing {{ table.from }} to {{ table.to }} of {{ table.matched }}</p>{% endif %}
+  {{ govukPagination(table.pagination) }}
+{% endif %}
+{% endmacro %}

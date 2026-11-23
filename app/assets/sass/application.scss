@@ -81,3 +81,11 @@
 .app-filter__count:empty {
   display: none;
 }
+
+// Search box with its button alongside, for paged tables of holdings
+.app-table-search__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}

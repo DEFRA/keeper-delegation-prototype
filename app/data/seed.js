@@ -16,9 +16,34 @@ const NORTHFIELD = [
 const nf = from => NORTHFIELD.slice(from[0], from[1]).map(h => h.cph)
 const rolesFor = (cphs, role) => cphs.map(cph => ({ cph, role }))
 
+// Enough everyday activity at Northfield for the Activity page to need paging
+const RECORDERS = [
+  ['Josh Reid', 'josh.reid@example.com', [0, 12]],
+  ['Ruth Moss', 'ruth.moss@example.com', [10, 18]],
+  ['Emma Clark', 'emma.clark@example.com', [6, 10]]
+]
+const RECORDS = ['Birth', 'Movement on', 'Movement off', 'Death', 'Birth', 'Movement off']
+const NORTHFIELD_ACTIVITY = Array.from({ length: 40 }, (_, i) => {
+  const [name, email, range] = RECORDERS[i % 3]
+  const cphs = nf(range)
+  const record = RECORDS[i % RECORDS.length]
+  return {
+    id: 'n' + (i + 1),
+    at: new Date(Date.UTC(2026, 8, 1, 8) + i * 2 * 86400000 + (i % 5) * 3600000).toISOString(),
+    actorName: name,
+    actorEmail: email,
+    action: `Recorded a ${record.toLowerCase()}`,
+    businessId: 'northfield',
+    holding: cphs[(i * 7) % cphs.length],
+    role: 'Delegate',
+    outcome: 'Recorded',
+    detail: 'Acted on behalf of Northfield Estates'
+  }
+})
+
 module.exports = {
   // Bump when the shape of this data changes, so old sessions are reset
-  version: 3,
+  version: 4,
   nextId: 100,
 
   currentEmail: null,
@@ -144,6 +169,7 @@ module.exports = {
   ],
 
   audit: [
+    ...NORTHFIELD_ACTIVITY,
     { id: 'a1', at: '2026-09-02T09:12:00Z', actorName: 'Jane Smith', actorEmail: 'jane.smith@example.com', action: 'CPH holder role granted', recipientName: 'Jane Smith', recipientEmail: 'jane.smith@example.com', businessId: 'hillside', role: 'CPH holder', outcome: 'Granted', detail: 'Email address matched the CPH holder record in SAM' },
     { id: 'a2', at: '2026-09-14T14:30:00Z', actorName: 'Alan Green', actorEmail: 'alan.green@example.com', action: 'CPH holder role granted', recipientName: 'Alan Green', recipientEmail: 'alan.green@example.com', businessId: 'meadowview', role: 'CPH holder', outcome: 'Granted', detail: 'Email address matched the CPH holder record in SAM' },
     { id: 'a3', at: '2026-09-20T08:45:00Z', actorName: 'Alan Green', actorEmail: 'alan.green@example.com', action: 'Invitation sent', recipientName: 'Tom Brown', recipientEmail: 'tom.brown@example.com', businessId: 'meadowview', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 44/112/0007' },

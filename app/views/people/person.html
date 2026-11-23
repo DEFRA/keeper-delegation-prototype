@@ -1,5 +1,5 @@
 {% extends "layouts/main.html" %}
-{% from "includes/filter.html" import appFilter %}
+{% from "includes/table-search.html" import tableSearch, tablePagination %}
 
 {% set pageName = person.name %}
 
@@ -61,9 +61,7 @@
 
     <h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status == "Invited" else "Holdings and roles" }}</h2>
 
-    {% if person.holdingsList.length > 8 %}
-      {{ appFilter({ id: "filter-person-holdings", target: "#person-holdings", items: "tr" }) }}
-    {% endif %}
+    {{ tableSearch(table, "search-person-holdings") }}
 
   </div>
 </div>
@@ -77,7 +75,7 @@
     </tr>
   </thead>
   <tbody class="govuk-table__body" id="person-holdings">
-    {% for h in person.holdingsList %}
+    {% for h in table.items %}
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }} · {{ h.address }}</span></td>
       <td class="govuk-table__cell">{{ h.role }}</td>
@@ -92,10 +90,12 @@
   </tbody>
 </table>
 
+{{ tablePagination(table) }}
+
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <h2 class="govuk-heading-m">Activity</h2>
+    <h2 class="govuk-heading-m">{{ "Recent activity" if historyCount > history.length else "Activity" }}</h2>
     {% if history.length %}
       <table class="govuk-table">
         <thead class="govuk-table__head">
@@ -118,6 +118,9 @@
           {% endfor %}
         </tbody>
       </table>
+      {% if historyCount > history.length %}
+        <p class="govuk-body"><a class="govuk-link" href="/activity?person={{ person.id }}">See all {{ historyCount }} activity entries for {{ person.name }}</a></p>
+      {% endif %}
     {% else %}
       <p class="govuk-body">No activity yet.</p>
     {% endif %}

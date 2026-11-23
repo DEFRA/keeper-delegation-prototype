@@ -85,6 +85,52 @@ function roleCounts (holdingsList) {
   return Object.keys(counts).sort(byRole).map(role => ({ role, count: counts[role] }))
 }
 
+// Page through a list. ?page= picks the page; extra keeps other query
+// values (search, filters) on the page links.
+function pageList (list, query, path, { size = 10, extra = {}, label = 'Pages' } = {}) {
+  const keep = {}
+  Object.keys(extra).forEach(k => { if (extra[k]) keep[k] = extra[k] })
+  const pages = Math.max(1, Math.ceil(list.length / size))
+  const page = Math.min(pages, Math.max(1, parseInt(query.page, 10) || 1))
+  const start = (page - 1) * size
+  const href = n => {
+    const qs = new URLSearchParams({ ...keep, ...(n > 1 ? { page: n } : {}) }).toString()
+    return path + (qs ? '?' + qs : '')
+  }
+  return {
+    items: list.slice(start, start + size),
+    matched: list.length,
+    from: list.length ? start + 1 : 0,
+    to: Math.min(start + size, list.length),
+    pagination: pages > 1
+      ? {
+          previous: page > 1 ? { href: href(page - 1) } : null,
+          next: page < pages ? { href: href(page + 1) } : null,
+          items: Array.from({ length: pages }, (_, i) => ({ number: i + 1, href: href(i + 1), current: i + 1 === page })),
+          landmarkLabel: label
+        }
+      : null
+  }
+}
+
+// Search and page through a table of holdings. Works without JavaScript:
+// ?q= searches name, CPH, address and role.
+function pageHoldings (holdings, query, path) {
+  const q = (query.q || '').trim()
+  const needle = q.toLowerCase()
+  const matched = needle
+    ? holdings.filter(h => [h.name, h.cph, h.address, h.role].join(' ').toLowerCase().includes(needle))
+    : holdings
+  return {
+    ...pageList(matched, query, path, { extra: { q }, label: 'Holdings pages' }),
+    q,
+    total: holdings.length,
+    searchable: holdings.length > 10,
+    clearHref: path,
+    action: path
+  }
+}
+
 function rolesSummary (roles) {
   const groups = {}
   roles.forEach(r => { (groups[r.role] = groups[r.role] || []).push(r.cph) })
@@ -457,6 +503,7 @@ router.get('/business', requireSignedIn, (req, res) => {
   const rels = s.relationships.filter(r => r.businessId === businessId)
   res.render('business', {
     holdings: res.locals.currentRelationship.holdingsList,
+    table: pageHoldings(res.locals.currentRelationship.holdingsList, req.query, '/business'),
     activeCount: rels.filter(r => r.status === 'Active').length,
     invitedCount: rels.filter(r => r.status === 'Invited').length
   })
@@ -474,6 +521,9 @@ router.get('/people', (req, res) => {
 
   let rels = s.relationships.filter(r => r.businessId === business.id && ['Active', 'Invited'].includes(r.status))
   if (holding) rels = rels.filter(r => roleOn(r, holding.cph))
+  const totalPeople = rels.length
+  const q = (req.query.q || '').trim()
+  if (q) rels = rels.filter(r => (r.name + ' ' + r.email).toLowerCase().includes(q.toLowerCase()))
 
   const people = rels
     .map(r => {
@@ -487,9 +537,13 @@ router.get('/people', (req, res) => {
   const invited = people.filter(p => p.status === 'Invited')
   const delegatedCount = active.filter(p => p.role !== 'CPH holder').length
 
+  const pageExtra = { holding: holding ? holding.cph : '', q }
   res.render('people/index', {
-    active,
+    active: pageList(active, req.query, '/people', { size: 20, extra: pageExtra, label: 'People pages' }),
     invited,
+    q,
+    searchable: totalPeople > 5,
+    clearHref: '/people' + (holding ? '?holding=' + encodeURIComponent(holding.cph) : ''),
     delegatedCount,
     holding,
     canManageHolding: holding && res.locals.adminCphs.includes(holding.cph),
@@ -712,11 +766,13 @@ router.get('/people/:id', (req, res) => {
   const manageableCount = person.holdingsList.filter(h => h.canManage).length
   const history = s.audit
     .filter(a => a.businessId === rel.businessId && (a.recipientEmail === rel.email || a.actorEmail === rel.email))
-    .slice()
-    .reverse()
+    .map((a, i) => ({ ...a, order: i }))
+    .sort((a, b) => b.at.localeCompare(a.at) || b.order - a.order)
   res.render('people/person', {
     person,
-    history,
+    table: pageHoldings(person.holdingsList, req.query, `/people/${rel.id}`),
+    history: history.slice(0, 5),
+    historyCount: history.length,
     flash: takeFlash(s),
     isSelf: rel.email === res.locals.currentUser.email,
     canRevoke: manageableCount > 0,
@@ -937,11 +993,35 @@ router.post('/people/:id/withdraw', (req, res) => {
 
 router.get('/activity', (req, res) => {
   const s = getState(req)
-  const entries = s.audit
-    .filter(a => a.businessId === res.locals.currentBusiness.id)
-    .slice()
-    .reverse()
-  res.render('activity', { entries })
+  const business = res.locals.currentBusiness
+  const all = s.audit
+    .filter(a => a.businessId === business.id)
+    .map((a, i) => ({ ...a, order: i }))
+    .sort((a, b) => b.at.localeCompare(a.at) || b.order - a.order)
+
+  // Filter by person (their relationship id, so no email in the URL) and holding
+  const rels = s.relationships.filter(r => r.businessId === business.id)
+  const person = rels.find(r => r.id === req.query.person) || null
+  const holding = req.query.holding ? findHolding(business, req.query.holding) : null
+  let entries = all
+  if (person) entries = entries.filter(a => a.actorEmail === person.email || a.recipientEmail === person.email)
+  if (holding) entries = entries.filter(a => a.holding === holding.cph || (a.detail || '').includes(holding.cph))
+
+  const seen = new Set()
+  const people = rels
+    .filter(r => all.some(a => a.actorEmail === r.email || a.recipientEmail === r.email))
+    .filter(r => !seen.has(r.email) && seen.add(r.email))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  res.render('activity', {
+    table: pageList(entries, req.query, '/activity', { size: 20, extra: { person: person && person.id, holding: holding && holding.cph }, label: 'Activity pages' }),
+    total: all.length,
+    people,
+    holdings: business.holdings,
+    person,
+    holding,
+    filtered: !!(person || holding)
+  })
 })
 
 // ---------------------------------------------------------------------------
