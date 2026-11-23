@@ -1,0 +1,53 @@
+{% extends "layouts/main.html" %}
+{% from "includes/filter.html" import appFilter %}
+
+{% set question = "Choose the holdings " + data.newPersonName + " can work on" %}
+{% set pageName = ("Error: " if errors else "") + question %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/add/holdings" }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    <span class="govuk-caption-l">Add a {{ data.newPersonRole | lower }}</span>
+    <h1 class="govuk-heading-l">{{ question }}</h1>
+
+    {% set items = [] %}
+    {% for holding in holdings %}
+      {% set items = (items.push({
+        value: holding.cph,
+        text: holding.name + " (" + holding.cph + ")",
+        hint: { text: holding.address }
+      }), items) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {% if holdings.length > 8 %}
+        {{ appFilter({ id: "filter-holdings", target: "#holding-options", items: ".govuk-checkboxes__item", selectButtons: true }) }}
+      {% endif %}
+
+      {{ govukCheckboxes({
+        name: "newPersonHoldings",
+        fieldset: {
+          legend: { text: "Holdings", classes: "govuk-fieldset__legend--s" }
+        },
+        hint: { text: "Select all that apply. They will be a " + (data.newPersonRole | lower) + " on each holding you select." },
+        items: items,
+        values: data.newPersonHoldings,
+        attributes: { id: "holding-options" },
+        errorMessage: { text: errors.newPersonHoldings } if errors and errors.newPersonHoldings
+      }) }}
+
+      {{ govukButton({ text: "Continue" }) }}
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

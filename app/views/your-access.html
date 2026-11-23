@@ -1,14 +1,48 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = "Your access" %}
+{% set pageName = ("Your access – Manage access") if accessNav else "Your access" %}
+
+{% macro holdingsTable(rel) %}
+<table class="govuk-table govuk-!-margin-bottom-2">
+  <caption class="govuk-table__caption govuk-visually-hidden">Your holdings for {{ rel.businessName }}</caption>
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Holding</th>
+      <th scope="col" class="govuk-table__header">Your role</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for h in rel.holdingsList %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }}</span></td>
+      <td class="govuk-table__cell">{{ h.role }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
 
 {% block content %}
+
+{% if accessNav %}
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">Manage access</h1>
+    {% include "includes/access-nav.html" %}
+  </div>
+</div>
+{% endif %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <span class="govuk-caption-l">{{ currentUser.name }}</span>
-    <h1 class="govuk-heading-l">Your access</h1>
+    {% if accessNav %}
+      <h2 class="govuk-heading-m">Your access</h2>
+    {% else %}
+      <span class="govuk-caption-l">{{ currentUser.name }}</span>
+      <h1 class="govuk-heading-l">Your access</h1>
+    {% endif %}
     <p class="govuk-body">These are the businesses and holdings you can work on, and your role on each holding.</p>
 
     {% if not relationships.length %}
@@ -19,7 +53,7 @@
     {% for rel in relationships %}
       <div class="govuk-summary-card">
         <div class="govuk-summary-card__title-wrapper">
-          <h2 class="govuk-summary-card__title">{{ rel.businessName }}</h2>
+          <h3 class="govuk-summary-card__title">{{ rel.businessName }}</h3>
           {% if not (currentBusiness and currentBusiness.id == rel.businessId) %}
           <ul class="govuk-summary-card__actions">
             <li class="govuk-summary-card__action">
@@ -36,23 +70,16 @@
           {% endif %}
         </div>
         <div class="govuk-summary-card__content">
-          <table class="govuk-table govuk-!-margin-bottom-2">
-            <caption class="govuk-table__caption govuk-visually-hidden">Your holdings for {{ rel.businessName }}</caption>
-            <thead class="govuk-table__head">
-              <tr class="govuk-table__row">
-                <th scope="col" class="govuk-table__header">Holding</th>
-                <th scope="col" class="govuk-table__header">Your role</th>
-              </tr>
-            </thead>
-            <tbody class="govuk-table__body">
-              {% for h in rel.holdingsList %}
-              <tr class="govuk-table__row">
-                <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }}</span></td>
-                <td class="govuk-table__cell">{{ h.role }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+          <ul class="govuk-list">
+            {% for rc in rel.roleCounts %}
+              <li><strong>{{ rc.role }}</strong> on {{ rc.count }} {{ "holding" if rc.count == 1 else "holdings" }}</li>
+            {% endfor %}
+          </ul>
+          {% if rel.holdingsList.length > 5 %}
+            {{ govukDetails({ summaryText: "See all " + rel.holdingsList.length + " holdings and your role on each", html: holdingsTable(rel), classes: "govuk-!-margin-bottom-2" }) }}
+          {% else %}
+            {{ holdingsTable(rel) }}
+          {% endif %}
           <p class="govuk-body-s govuk-!-margin-bottom-0">Given by {{ rel.addedBy }} on {{ rel.addedOn | formatDate }}</p>
         </div>
       </div>

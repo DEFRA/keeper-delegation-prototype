@@ -1,0 +1,53 @@
+{% extends "layouts/main.html" %}
+{% from "includes/filter.html" import appFilter %}
+
+{% set question = "Which holdings do you want to change " + person.name + "'s role on?" %}
+{% set pageName = ("Error: " if errors else "") + question %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    {% include "includes/error-summary.html" %}
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ question }}</h1>
+
+    {% set items = [] %}
+    {% for h in holdings %}
+      {% set items = (items.push({
+        value: h.cph,
+        text: h.name + " (" + h.cph + ")",
+        hint: { text: "Currently " + (h.role | lower) }
+      }), items) %}
+    {% endfor %}
+
+    <form method="post" novalidate>
+      {% if holdings.length > 8 %}
+        {{ appFilter({ id: "filter-holdings", target: "#holding-options", items: ".govuk-checkboxes__item", selectButtons: true, hint: "Type part of a holding name, CPH number or role" }) }}
+      {% endif %}
+
+      {{ govukCheckboxes({
+        name: "changeHoldings",
+        fieldset: { legend: { text: "Holdings", classes: "govuk-fieldset__legend--s" } },
+        hint: { text: "Select all that apply. You will choose the new role on the next page. You can only change roles on holdings you manage." },
+        items: items,
+        attributes: { id: "holding-options" },
+        errorMessage: { text: errors.changeHoldings } if errors and errors.changeHoldings
+      }) }}
+
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Continue" }) }}
+        <a class="govuk-link" href="/people/{{ person.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

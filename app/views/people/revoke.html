@@ -1,4 +1,5 @@
 {% extends "layouts/main.html" %}
+{% from "includes/filter.html" import appFilter %}
 
 {% set pageName = ("Error: " if errors else "") + "Which holdings do you want to revoke " + person.name + "'s access to?" %}
 
@@ -24,12 +25,19 @@
     {% endfor %}
 
     <form method="post" novalidate>
+      {% if holdings.length > 8 %}
+        <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+        <h1 class="govuk-heading-l">Which holdings do you want to revoke {{ person.name }}'s access to?</h1>
+        {{ appFilter({ id: "filter-holdings", target: "#holding-options", items: ".govuk-checkboxes__item", selectButtons: true, hint: "Type part of a holding name, CPH number or role" }) }}
+        {% set legend = { text: "Holdings", classes: "govuk-fieldset__legend--s" } %}
+      {% else %}
+        {% set legend = { html: '<span class="govuk-caption-l">' + currentBusiness.name + '</span>Which holdings do you want to revoke ' + person.name + '\'s access to?', isPageHeading: true, classes: "govuk-fieldset__legend--l" } %}
+      {% endif %}
       {{ govukCheckboxes({
         name: "revokeHoldings",
-        fieldset: {
-          legend: { html: '<span class="govuk-caption-l">' + currentBusiness.name + '</span>Which holdings do you want to revoke ' + person.name + '\'s access to?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
-        },
+        fieldset: { legend: legend },
         hint: { text: "Select all that apply. You can only revoke access to holdings you manage." },
+        attributes: { id: "holding-options" },
         items: items,
         errorMessage: { text: errors.revokeHoldings } if errors and errors.revokeHoldings
       }) }}

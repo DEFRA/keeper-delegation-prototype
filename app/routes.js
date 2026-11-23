@@ -65,10 +65,24 @@ function describe (s, rel) {
     role: roles[0],
     roleLabel: roles.join(' and '),
     mixedRoles: roles.length > 1,
-    holdingsLabel: allHoldings && roles.length === 1 ? 'All holdings' : holdingsList.map(h => h.cph).join(', '),
+    holdingsLabel: holdingsLabel(holdingsList, allHoldings && roles.length === 1),
     lastSignIn: person.lastSignIn,
     expiresOn: rel.status === 'Invited' ? new Date(new Date(rel.addedOn).getTime() + INVITATION_DAYS * 86400000).toISOString() : null
   }
+}
+
+// Lists a few holdings by CPH, otherwise gives a count so it scales
+function holdingsLabel (holdings, all) {
+  if (all) return holdings.length === 1 ? holdings[0].cph : `All ${holdings.length} holdings`
+  if (holdings.length > 3) return `${holdings.length} holdings`
+  return holdings.map(h => h.cph).join(', ')
+}
+
+// How many holdings a person has each role on
+function roleCounts (holdingsList) {
+  const counts = {}
+  holdingsList.forEach(h => { counts[h.role] = (counts[h.role] || 0) + 1 })
+  return Object.keys(counts).sort(byRole).map(role => ({ role, count: counts[role] }))
 }
 
 function rolesSummary (roles) {
@@ -101,18 +115,18 @@ function recordSignIn (s, email) {
 
 function buildNav (req, s, user, rel) {
   if (!user) return undefined
+  const under = paths => paths.some(p => req.path === p || req.path.startsWith(p + '/'))
   const items = []
   if (rel && relIsAdmin(rel)) {
-    items.push(['/business', 'Business overview'], ['/people', 'People'], ['/activity', 'Activity'])
-  } else if (rel) {
-    items.push(['/holding', 'Your holding'])
+    // People, Your access and Activity sit under one Manage access section
+    items.push(['/business', 'Business overview', ['/business']])
+    items.push(['/people', 'Manage access', ['/people', '/your-access', '/activity']])
+  } else {
+    if (rel) items.push(['/holding', 'Your holding', ['/holding', '/choose-holding']])
+    items.push(['/your-access', 'Your access', ['/your-access']])
   }
-  items.push(['/your-access', 'Your access'], ['/sign-out', 'Sign out'])
-  return items.map(([href, text]) => ({
-    href,
-    text,
-    active: req.path === href || req.path.startsWith(href + '/')
-  }))
+  items.push(['/sign-out', 'Sign out', []])
+  return items.map(([href, text, paths]) => ({ href, text, active: under(paths) }))
 }
 
 // Picks a business for the signed-in user and sends them to the right place
@@ -165,6 +179,13 @@ router.use((req, res, next) => {
   res.locals.adminCphs = rel ? adminCphs(rel) : []
   res.locals.isAdmin = !!(rel && relIsAdmin(rel))
   res.locals.navItems = buildNav(req, s, user, rel)
+  res.locals.accessNav = res.locals.isAdmin
+    ? [
+        { href: '/people', text: 'People with access', active: req.path === '/people' || req.path.startsWith('/people/') },
+        { href: '/your-access', text: 'Your access', active: req.path === '/your-access' },
+        { href: '/activity', text: 'Activity', active: req.path === '/activity' }
+      ]
+    : null
   next()
 })
 
@@ -421,6 +442,7 @@ router.get('/your-access', (req, res) => {
   const invitations = s.relationships
     .filter(r => r.email === user.email && r.status === 'Invited')
     .map(rel => describe(s, rel))
+  relationships.forEach(r => { r.roleCounts = roleCounts(r.holdingsList) })
   res.render('your-access', { relationships, invitations })
 })
 
@@ -471,6 +493,7 @@ router.get('/people', (req, res) => {
     delegatedCount,
     holding,
     canManageHolding: holding && res.locals.adminCphs.includes(holding.cph),
+    filterHoldings: business.holdings.filter(h => res.locals.adminCphs.includes(h.cph)),
     flash: takeFlash(s)
   })
 })
@@ -478,7 +501,7 @@ router.get('/people', (req, res) => {
 router.get('/people/add/role', (req, res) => {
   if (req.query.new) {
     const data = req.session.data
-    data.newPersonRole = data.newPersonName = data.newPersonEmail = ''
+    data.newPersonRole = data.newPersonName = data.newPersonEmail = data.newPersonScope = ''
     data.newPersonHoldings = []
   }
   res.render('people/add/role')
@@ -544,18 +567,46 @@ function appointableHoldings (res) {
   return res.locals.currentBusiness.holdings.filter(h => res.locals.adminCphs.includes(h.cph))
 }
 
+// Step 1: all the holdings you manage, or only some? (just a confirmation when
+// you only manage one). Step 2, for "some": tick the holdings, with a filter.
 router.get('/people/add/holdings', (req, res) => {
   if (!APPOINTABLE_ROLES.includes(req.session.data.newPersonRole)) return res.redirect('/people/add/role')
   res.render('people/add/holdings', { holdings: appointableHoldings(res) })
 })
 
 router.post('/people/add/holdings', (req, res) => {
+  const data = req.session.data
+  const holdings = appointableHoldings(res)
+  const valid = holdings.map(h => h.cph)
+  const scope = req.body.newPersonScope
+  if (holdings.length === 1 || scope === 'all') {
+    data.newPersonHoldings = valid
+    return res.redirect('/people/add/check')
+  }
+  if (scope === 'some') return res.redirect('/people/add/holdings/choose')
+  // Ticked holdings posted straight here (kept for direct links and tests)
+  const selected = asArray(req.body.newPersonHoldings).filter(cph => valid.includes(cph))
+  if (selected.length) {
+    data.newPersonHoldings = selected
+    return res.redirect('/people/add/check')
+  }
+  res.render('people/add/holdings', { holdings, ...withErrors({ newPersonScope: 'Select which holdings they can work on' }) })
+})
+
+router.get('/people/add/holdings/choose', (req, res) => {
+  if (!APPOINTABLE_ROLES.includes(req.session.data.newPersonRole)) return res.redirect('/people/add/role')
+  const holdings = appointableHoldings(res)
+  if (holdings.length === 1) return res.redirect('/people/add/holdings')
+  res.render('people/add/choose-holdings', { holdings })
+})
+
+router.post('/people/add/holdings/choose', (req, res) => {
   const holdings = appointableHoldings(res)
   const valid = holdings.map(h => h.cph)
   const selected = asArray(req.body.newPersonHoldings).filter(cph => valid.includes(cph))
   req.session.data.newPersonHoldings = selected
   if (!selected.length) {
-    return res.render('people/add/holdings', { holdings, ...withErrors({ newPersonHoldings: 'Select at least one holding' }) })
+    return res.render('people/add/choose-holdings', { holdings, ...withErrors({ newPersonHoldings: 'Select at least one holding' }) })
   }
   res.redirect('/people/add/check')
 })
@@ -575,7 +626,13 @@ router.get('/people/add/check', (req, res) => {
   const draft = draftPerson(req, res)
   if (!draft.role || !draft.name || !draft.email) return res.redirect('/people/add/role')
   if (!draft.holdings.length) return res.redirect('/people/add/holdings')
-  res.render('people/add/check', { draft })
+  const all = appointableHoldings(res)
+  const allHoldings = all.length > 1 && draft.holdings.length === all.length
+  res.render('people/add/check', {
+    draft,
+    allHoldings,
+    holdingsChangeUrl: all.length > 1 && !allHoldings ? '/people/add/holdings/choose' : '/people/add/holdings'
+  })
 })
 
 router.post('/people/add/check', (req, res) => {
@@ -612,7 +669,7 @@ router.post('/people/add/check', (req, res) => {
   })
 
   const data = req.session.data
-  data.newPersonRole = data.newPersonName = data.newPersonEmail = ''
+  data.newPersonRole = data.newPersonName = data.newPersonEmail = data.newPersonScope = ''
   data.newPersonHoldings = []
   res.redirect(`/people/add/sent?id=${rel.id}`)
 })
@@ -651,6 +708,8 @@ router.get('/people/:id', (req, res) => {
   if (!rel) return res.redirect('/people')
   const person = describe(s, rel)
   person.holdingsList.forEach(h => { h.canManage = canManage(res, rel, h.cph) })
+  person.roleCounts = roleCounts(person.holdingsList)
+  const manageableCount = person.holdingsList.filter(h => h.canManage).length
   const history = s.audit
     .filter(a => a.businessId === rel.businessId && (a.recipientEmail === rel.email || a.actorEmail === rel.email))
     .slice()
@@ -660,21 +719,58 @@ router.get('/people/:id', (req, res) => {
     history,
     flash: takeFlash(s),
     isSelf: rel.email === res.locals.currentUser.email,
-    canRevoke: person.holdingsList.some(h => h.canManage),
+    canRevoke: manageableCount > 0,
+    canChangeSeveral: manageableCount > 1,
     someOutOfScope: rel.status === 'Active' && rel.email !== res.locals.currentUser.email && person.holdingsList.some(h => !h.canManage && h.role !== 'CPH holder')
   })
 })
 
-// Change role on one holding
+// Change role on one or more holdings. With lots of holdings, choose the
+// holdings first (change-roles), then the role.
+const cphQuery = cphs => cphs.map(cph => 'cph=' + encodeURIComponent(cph)).join('&')
+const holdingNames = holdings => holdings.length > 3 ? `${holdings.length} holdings` : holdings.map(h => `${h.name} (${h.cph})`).join(', ')
+
 function roleChange (req, res) {
   const s = getState(req)
   const rel = personInBusiness(req, res, ['Active'])
-  const cph = req.query.cph || (req.body && req.body.changeCph)
-  if (!rel || !canManage(res, rel, cph)) return null
-  const holding = findHolding(res.locals.currentBusiness, cph)
-  const from = roleOn(rel, cph)
-  return { s, rel, person: describe(s, rel), holding, from }
+  if (!rel) return null
+  const cphs = [...new Set(asArray(req.query.cph || (req.body && req.body.changeCph)))]
+  const holdings = describe(s, rel).holdingsList.filter(h => cphs.includes(h.cph))
+  if (!holdings.length || holdings.length !== cphs.length || !holdings.every(h => canManage(res, rel, h.cph))) return null
+  const fromRoles = [...new Set(holdings.map(h => h.role))]
+  return {
+    s,
+    rel,
+    person: describe(s, rel),
+    holdings,
+    holding: holdings[0],
+    several: holdings.length > 1,
+    from: fromRoles.length === 1 ? fromRoles[0] : null,
+    holdingsText: holdingNames(holdings),
+    cphQuery: cphQuery(holdings.map(h => h.cph))
+  }
 }
+
+router.get('/people/:id/change-roles', (req, res) => {
+  const s = getState(req)
+  const rel = personInBusiness(req, res, ['Active'])
+  if (!rel) return res.redirect('/people')
+  const holdings = manageableHoldings(s, res, rel)
+  if (holdings.length < 2) return res.redirect(`/people/${rel.id}`)
+  res.render('people/change-roles', { person: describe(s, rel), holdings })
+})
+
+router.post('/people/:id/change-roles', (req, res) => {
+  const s = getState(req)
+  const rel = personInBusiness(req, res, ['Active'])
+  if (!rel) return res.redirect('/people')
+  const holdings = manageableHoldings(s, res, rel)
+  const selected = asArray(req.body.changeHoldings).filter(cph => holdings.some(h => h.cph === cph))
+  if (!selected.length) {
+    return res.render('people/change-roles', { person: describe(s, rel), holdings, ...withErrors({ changeHoldings: 'Select the holdings you want to change their role on' }) })
+  }
+  res.redirect(`/people/${rel.id}/role?${cphQuery(selected)}`)
+})
 
 router.get('/people/:id/role', (req, res) => {
   const change = roleChange(req, res)
@@ -690,39 +786,45 @@ router.post('/people/:id/role', (req, res) => {
     return res.render('people/role', { ...change, ...withErrors({ newRole: 'Select a role' }) })
   }
   if (to === change.from) {
-    return res.render('people/role', { ...change, ...withErrors({ newRole: `${change.person.name} is already a ${to.toLowerCase()} on this holding. Select a different role` }) })
+    const where = change.several ? 'these holdings' : 'this holding'
+    return res.render('people/role', { ...change, ...withErrors({ newRole: `${change.person.name} is already a ${to.toLowerCase()} on ${where}. Select a different role` }) })
   }
-  res.redirect(`/people/${change.rel.id}/role/confirm?cph=${encodeURIComponent(change.holding.cph)}&to=${slugFor(to)}`)
+  res.redirect(`/people/${change.rel.id}/role/confirm?${change.cphQuery}&to=${slugFor(to)}`)
 })
 
 router.get('/people/:id/role/confirm', (req, res) => {
   const change = roleChange(req, res)
   const to = change && ROLE_SLUGS[req.query.to]
   if (!change || !to || to === change.from) return res.redirect(`/people/${req.params.id}`)
-  res.render('people/role-confirm', { ...change, to, toSlug: req.query.to })
+  const changing = change.holdings.filter(h => h.role !== to)
+  res.render('people/role-confirm', { ...change, to, toSlug: req.query.to, changing, changingText: holdingNames(changing) })
 })
 
 router.post('/people/:id/role/confirm', (req, res) => {
   const change = roleChange(req, res)
   const to = change && ROLE_SLUGS[req.body.changeTo]
   if (!change || !to || to === change.from) return res.redirect(`/people/${req.params.id}`)
-  const { s, rel, holding, from } = change
+  const { s, rel } = change
   const user = res.locals.currentUser
-  rel.roles.find(r => r.cph === holding.cph).role = to
+  const changing = change.holdings.filter(h => h.role !== to)
   const promoted = to === 'Keeper administrator'
-  audit(s, {
-    actorName: user.name,
-    actorEmail: user.email,
-    action: promoted ? 'Promoted to keeper administrator' : 'Changed to delegate',
-    recipientName: rel.name,
-    recipientEmail: rel.email,
-    businessId: rel.businessId,
-    holding: holding.cph,
-    role: to,
-    outcome: 'Changed',
-    detail: `Was ${from.toLowerCase()}. Takes effect immediately. Other holdings are not affected`
+  changing.forEach(h => {
+    rel.roles.find(r => r.cph === h.cph).role = to
+    audit(s, {
+      actorName: user.name,
+      actorEmail: user.email,
+      action: promoted ? 'Promoted to keeper administrator' : 'Changed to delegate',
+      recipientName: rel.name,
+      recipientEmail: rel.email,
+      businessId: rel.businessId,
+      holding: h.cph,
+      role: to,
+      outcome: 'Changed',
+      detail: `Was ${h.role.toLowerCase()}. Takes effect immediately. Other holdings are not affected`
+    })
   })
-  s.flash = `${rel.name} is now a ${to.toLowerCase()} on ${holding.name} (${holding.cph})`
+  const where = changing.length === 1 ? `${changing[0].name} (${changing[0].cph})` : `${changing.length} holdings`
+  s.flash = `${rel.name} is now a ${to.toLowerCase()} on ${where}`
   res.redirect(`/people/${rel.id}`)
 })
 
@@ -748,8 +850,7 @@ router.post('/people/:id/revoke', (req, res) => {
   if (!selected.length) {
     return res.render('people/revoke', { person: describe(s, rel), holdings, preselected: [], ...withErrors({ revokeHoldings: 'Select the holdings you want to revoke access to' }) })
   }
-  const query = selected.map(cph => 'cph=' + encodeURIComponent(cph)).join('&')
-  res.redirect(`/people/${rel.id}/revoke/confirm?${query}`)
+  res.redirect(`/people/${rel.id}/revoke/confirm?${cphQuery(selected)}`)
 })
 
 function revokeSelection (s, res, rel, cphs) {
@@ -797,7 +898,7 @@ router.post('/people/:id/revoke/confirm', (req, res) => {
     s.flash = `${rel.name} no longer has access to ${business.name}`
     return res.redirect('/people')
   }
-  s.flash = `${rel.name} no longer has access to ${holdings.map(h => h.name).join(' and ')}`
+  s.flash = `${rel.name} no longer has access to ${holdings.length > 3 ? holdings.length + ' holdings' : holdings.map(h => h.name).join(' and ')}`
   res.redirect(`/people/${rel.id}`)
 })
 

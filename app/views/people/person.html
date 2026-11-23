@@ -1,9 +1,10 @@
 {% extends "layouts/main.html" %}
+{% from "includes/filter.html" import appFilter %}
 
 {% set pageName = person.name %}
 
 {% block pageBeforeContent %}
-  {{ govukBackLink({ text: "Back to people", href: "/people" }) }}
+  {{ govukBackLink({ text: "Back to people with access", href: "/people" }) }}
 {% endblock %}
 
 {% block content %}
@@ -18,10 +19,15 @@
     <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
     <h1 class="govuk-heading-l">{{ person.name }}{% if isSelf %} (you){% endif %}</h1>
 
+    {% set rolesHtml %}
+      {% for rc in person.roleCounts %}{{ rc.role }} on {{ rc.count }} {{ "holding" if rc.count == 1 else "holdings" }}{% if not loop.last %}<br>{% endif %}{% endfor %}
+    {% endset %}
+
     {{ govukSummaryList({
       rows: [
         { key: { text: "Email address" }, value: { text: person.email } },
         { key: { text: "Status" }, value: { html: '<strong class="govuk-tag ' + (person.status | tagClass) + '">' + person.status + '</strong>' } },
+        { key: { text: "Roles offered" if person.status == "Invited" else "Roles" }, value: { html: rolesHtml } },
         { key: { text: "Last signed in" }, value: { text: (person.lastSignIn | formatDateTime) or "Not yet" } },
         { key: { text: "Added by" }, value: { text: person.addedBy } },
         { key: { text: "Added on" }, value: { text: person.addedOn | formatDate } },
@@ -29,10 +35,38 @@
       ] | select
     }) }}
 
+    {% if person.status == "Invited" %}
+      <p class="govuk-body">{{ person.name }} cannot access {{ currentBusiness.name }} until they accept the invitation and complete the enrolment checks.</p>
+      {{ govukInsetText({
+        html: 'Prototype only: <a class="govuk-link" href="/invitation?id=' + person.id + '">open the invitation as ' + person.name + '</a>.'
+      }) }}
+      {{ govukButton({ text: "Withdraw invitation", href: "/people/" + person.id + "/withdraw", classes: "govuk-button--secondary" }) }}
+    {% elif isSelf %}
+      <p class="govuk-body">You cannot change your own role or revoke your own access.</p>
+    {% else %}
+      {% if canRevoke %}
+        <div class="govuk-button-group">
+          {% if canChangeSeveral %}
+            {{ govukButton({ text: "Change role on several holdings", href: "/people/" + person.id + "/change-roles", classes: "govuk-button--secondary" }) }}
+          {% endif %}
+          {{ govukButton({ text: "Revoke access", href: "/people/" + person.id + "/revoke", classes: "govuk-button--warning" }) }}
+        </div>
+      {% endif %}
+      {% if person.role == "CPH holder" %}
+        <p class="govuk-body">The CPH holder role comes from the CPH record, so it cannot be changed or removed here.</p>
+      {% elif someOutOfScope %}
+        <p class="govuk-body">You can only change roles on holdings where you are a CPH holder or keeper administrator.</p>
+      {% endif %}
+    {% endif %}
+
+    <h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status == "Invited" else "Holdings and roles" }}</h2>
+
+    {% if person.holdingsList.length > 8 %}
+      {{ appFilter({ id: "filter-person-holdings", target: "#person-holdings", items: "tr" }) }}
+    {% endif %}
+
   </div>
 </div>
-
-<h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status == "Invited" else "Holdings and roles" }}</h2>
 
 <table class="govuk-table">
   <thead class="govuk-table__head">
@@ -42,10 +76,10 @@
       <th scope="col" class="govuk-table__header"><span class="govuk-visually-hidden">Actions</span></th>
     </tr>
   </thead>
-  <tbody class="govuk-table__body">
+  <tbody class="govuk-table__body" id="person-holdings">
     {% for h in person.holdingsList %}
     <tr class="govuk-table__row">
-      <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }}</span></td>
+      <td class="govuk-table__cell">{{ h.name }} <span class="govuk-body-s app-table-secondary">{{ h.cph }} · {{ h.address }}</span></td>
       <td class="govuk-table__cell">{{ h.role }}</td>
       <td class="govuk-table__cell govuk-table__cell--numeric">
         {% if h.canManage %}
@@ -60,25 +94,6 @@
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-
-    {% if person.status == "Invited" %}
-      <p class="govuk-body">{{ person.name }} cannot access {{ currentBusiness.name }} until they accept the invitation and complete the enrolment checks.</p>
-      {{ govukInsetText({
-        html: 'Prototype only: <a class="govuk-link" href="/invitation?id=' + person.id + '">open the invitation as ' + person.name + '</a>.'
-      }) }}
-      {{ govukButton({ text: "Withdraw invitation", href: "/people/" + person.id + "/withdraw", classes: "govuk-button--secondary" }) }}
-    {% elif isSelf %}
-      <p class="govuk-body">You cannot change your own role or revoke your own access.</p>
-    {% else %}
-      {% if canRevoke %}
-        {{ govukButton({ text: "Revoke access", href: "/people/" + person.id + "/revoke", classes: "govuk-button--warning" }) }}
-      {% endif %}
-      {% if person.role == "CPH holder" %}
-        <p class="govuk-body">The CPH holder role comes from the CPH record, so it cannot be changed or removed here.</p>
-      {% elif someOutOfScope %}
-        <p class="govuk-body">You can only change roles on holdings where you are a CPH holder or keeper administrator.</p>
-      {% endif %}
-    {% endif %}
 
     <h2 class="govuk-heading-m">Activity</h2>
     {% if history.length %}

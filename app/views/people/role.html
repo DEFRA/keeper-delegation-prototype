@@ -1,9 +1,11 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = ("Error: " if errors else "") + "Change " + person.name + "'s role on " + holding.name %}
+{% set question = ("What role should " + person.name + " have on these " + holdings.length + " holdings?") if several else ("What role should " + person.name + " have on this holding?") %}
+{% set pageName = ("Error: " if errors else "") + question %}
+{% set backHref = ("/people/" + person.id + "/change-roles") if several else ("/people/" + person.id) %}
 
 {% block pageBeforeContent %}
-  {{ govukBackLink({ text: "Back", href: "/people/" + person.id }) }}
+  {{ govukBackLink({ text: "Back", href: backHref }) }}
 {% endblock %}
 
 {% block content %}
@@ -13,28 +15,50 @@
 
     {% include "includes/error-summary.html" %}
 
+    {% set listHtml %}<ul class="govuk-list govuk-list--bullet">{% for h in holdings %}<li>{{ h.name }} ({{ h.cph }}) – currently {{ h.role | lower }}</li>{% endfor %}</ul>{% endset %}
+
     <form method="post" novalidate>
-      <input type="hidden" name="changeCph" value="{{ holding.cph }}">
+      {% for h in holdings %}<input type="hidden" name="changeCph" value="{{ h.cph }}">{% endfor %}
+
+      {% if several %}
+        {% set hintText = ("They are currently a " + (from | lower) + " on all of them.") if from else "They have different roles on these holdings." %}
+        {% set hintText = hintText + " Their role on other holdings will not change." %}
+      {% else %}
+        {% set hintText = "They are currently a " + (from | lower) + " on this holding. Their role on other holdings will not change." %}
+      {% endif %}
+
+      {% set legendHtml %}<span class="govuk-caption-l">{{ (holding.name + " (" + holding.cph + ")") if not several else currentBusiness.name }}</span>{{ question }}{% endset %}
+
+      {% set beforeHtml %}
+        {% if several %}
+          {% if holdings.length > 5 %}
+            {{ govukDetails({ summaryText: "See the " + holdings.length + " holdings", html: listHtml }) }}
+          {% else %}
+            {{ listHtml | safe }}
+          {% endif %}
+        {% endif %}
+      {% endset %}
 
       {{ govukRadios({
         name: "newRole",
         fieldset: {
-          legend: { html: '<span class="govuk-caption-l">' + holding.name + ' (' + holding.cph + ')</span>What role should ' + person.name + ' have on this holding?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+          legend: { html: legendHtml, isPageHeading: true, classes: "govuk-fieldset__legend--l" }
         },
-        hint: { text: "They are currently a " + (from | lower) + " on this holding. Their role on other holdings will not change." },
+        hint: { text: hintText },
+        formGroup: { beforeInputs: { html: beforeHtml } },
         items: [
           {
             value: "Keeper administrator",
             text: "Keeper administrator",
-            hint: { text: "Can manage who has access to this holding, as well as work on it." }
+            hint: { text: "Can manage who has access to " + ("these holdings" if several else "this holding") + ", as well as work on " + ("them." if several else "it.") }
           },
           {
             value: "Delegate",
             text: "Delegate",
-            hint: { text: "Can work on this holding. Cannot add, change or remove anyone's access." }
+            hint: { text: "Can work on " + ("these holdings" if several else "this holding") + ". Cannot add, change or remove anyone's access." }
           }
         ],
-        value: ("Delegate" if from == "Keeper administrator" else "Keeper administrator") if not errors,
+        value: (("Delegate" if from == "Keeper administrator" else "Keeper administrator") if from) if not errors,
         errorMessage: { text: errors.newRole } if errors and errors.newRole
       }) }}
 

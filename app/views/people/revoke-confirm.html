@@ -16,9 +16,12 @@
     <h1 class="govuk-heading-l">{{ heading }}</h1>
 
     <p class="govuk-body">{{ person.name }} will no longer be able to work on:</p>
-    <ul class="govuk-list govuk-list--bullet">
-      {% for h in holdings %}<li>{{ h.name }} ({{ h.cph }}) – {{ h.role | lower }}</li>{% endfor %}
-    </ul>
+    {% set listHtml %}<ul class="govuk-list govuk-list--bullet">{% for h in holdings %}<li>{{ h.name }} ({{ h.cph }}) – {{ h.role | lower }}</li>{% endfor %}</ul>{% endset %}
+    {% if holdings.length > 5 %}
+      {{ govukDetails({ summaryText: holdings.length + " holdings", html: listHtml }) }}
+    {% else %}
+      {{ listHtml | safe }}
+    {% endif %}
 
     {% if removesAll %}
       {{ govukWarningText({ text: "This removes all of " + person.name + "'s access to " + currentBusiness.name + ". They would need a new invitation to get it back." }) }}

@@ -17,7 +17,7 @@
     {{ govukSummaryList({
       rows: [
         { key: { text: "Business" }, value: { text: currentBusiness.name } },
-        { key: { text: "SBI" }, value: { text: currentBusiness.sbi } },
+        { key: { text: "Holdings" }, value: { text: "" + currentBusiness.holdings.length } },
         { key: { text: "Your role" }, value: { text: currentRelationship.role } }
       ]
     }) }}

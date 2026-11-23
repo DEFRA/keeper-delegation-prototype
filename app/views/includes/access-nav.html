@@ -1,0 +1,12 @@
+{#- Sub navigation for the Manage access section (administrators only) -#}
+{% if accessNav %}
+<nav class="app-sub-navigation" aria-label="Manage access">
+  <ul class="app-sub-navigation__list">
+    {% for item in accessNav %}
+    <li class="app-sub-navigation__item">
+      <a class="app-sub-navigation__link" href="{{ item.href }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.text }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}

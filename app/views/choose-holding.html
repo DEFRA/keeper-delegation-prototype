@@ -1,4 +1,5 @@
 {% extends "layouts/main.html" %}
+{% from "includes/filter.html" import appFilter %}
 
 {% set pageName = ("Error: " if errors else "") + "Which holding are you working on?" %}
 
@@ -20,12 +21,19 @@
     {% endfor %}
 
     <form method="post" novalidate>
+      {% if holdings.length > 8 %}
+        <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+        <h1 class="govuk-heading-l">Which holding are you working on?</h1>
+        {{ appFilter({ id: "filter-holdings", target: "#holding-options", items: ".govuk-radios__item" }) }}
+        {% set legend = { text: "Holding", classes: "govuk-fieldset__legend--s" } %}
+      {% else %}
+        {% set legend = { html: '<span class="govuk-caption-l">' + currentBusiness.name + '</span>Which holding are you working on?', isPageHeading: true, classes: "govuk-fieldset__legend--l" } %}
+      {% endif %}
       {{ govukRadios({
         name: "chosenHolding",
-        fieldset: {
-          legend: { html: '<span class="govuk-caption-l">' + currentBusiness.name + '</span>Which holding are you working on?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
-        },
+        fieldset: { legend: legend },
         hint: { text: "You can only see holdings you have been given access to." },
+        attributes: { id: "holding-options" },
         items: items,
         errorMessage: { text: errors.chosenHolding } if errors and errors.chosenHolding
       }) }}

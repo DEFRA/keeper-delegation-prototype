@@ -1,11 +1,13 @@
 {% extends "layouts/main.html" %}
 
 {% set promoting = to == "Keeper administrator" %}
-{% set heading = "Make " + person.name + " a " + (to | lower) + " on " + holding.name + "?" %}
+{% set target = (changing.length + " holdings") if changing.length > 1 else changing[0].name %}
+{% set heading = "Make " + person.name + " a " + (to | lower) + " on " + target + "?" %}
 {% set pageName = heading %}
+{% set unchanged = holdings.length - changing.length %}
 
 {% block pageBeforeContent %}
-  {{ govukBackLink({ text: "Back", href: "/people/" + person.id + "/role?cph=" + (holding.cph | urlencode) }) }}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id + "/role?" + cphQuery }) }}
 {% endblock %}
 
 {% block content %}
@@ -16,25 +18,40 @@
     <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
     <h1 class="govuk-heading-l">{{ heading }}</h1>
 
-    {{ govukSummaryList({
-      rows: [
-        { key: { text: "Holding" }, value: { text: holding.name + " (" + holding.cph + ")" } },
-        { key: { text: "Current role" }, value: { text: from } },
-        { key: { text: "New role" }, value: { text: to } }
-      ]
-    }) }}
-
-    {% if promoting %}
-      <p class="govuk-body">{{ person.name }} will be able to add, change and remove other people's access to {{ holding.name }}, as well as work on it.</p>
+    {% if changing.length == 1 %}
+      {{ govukSummaryList({
+        rows: [
+          { key: { text: "Holding" }, value: { text: changing[0].name + " (" + changing[0].cph + ")" } },
+          { key: { text: "Current role" }, value: { text: changing[0].role } },
+          { key: { text: "New role" }, value: { text: to } }
+        ]
+      }) }}
     {% else %}
-      <p class="govuk-body">{{ person.name }} will still be able to work on {{ holding.name }}, but will no longer be able to add, change or remove anyone's access to it.</p>
+      {% set listHtml %}<ul class="govuk-list">{% for h in changing %}<li>{{ h.name }} ({{ h.cph }}) – {{ h.role | lower }}</li>{% endfor %}</ul>{% endset %}
+      {{ govukSummaryList({
+        rows: [
+          { key: { text: "Holdings" }, value: { html: listHtml if changing.length <= 5 else ("<p class=\"govuk-body\">" + changing.length + " holdings</p>" + govukDetails({ summaryText: "See the holdings", html: listHtml, classes: "govuk-!-margin-bottom-0" })) } },
+          { key: { text: "New role" }, value: { text: to } }
+        ]
+      }) }}
+    {% endif %}
+
+    {% if unchanged %}
+      <p class="govuk-body">{{ person.name }} is already a {{ to | lower }} on {{ unchanged }} of the holdings you chose, so {{ "it stays" if unchanged == 1 else "those stay" }} the same.</p>
+    {% endif %}
+
+    {% set where = "these holdings" if changing.length > 1 else changing[0].name %}
+    {% if promoting %}
+      <p class="govuk-body">{{ person.name }} will be able to add, change and remove other people's access to {{ where }}, as well as work on {{ "them" if changing.length > 1 else "it" }}.</p>
+    {% else %}
+      <p class="govuk-body">{{ person.name }} will still be able to work on {{ where }}, but will no longer be able to add, change or remove anyone's access to {{ "them" if changing.length > 1 else "it" }}.</p>
     {% endif %}
     <p class="govuk-body">The change takes effect straight away. {{ person.name }}'s role on any other holdings will not change.</p>
 
     {{ govukInsetText({ text: "To be confirmed: whether we tell " + person.name + " and the other administrators about this change, and how." }) }}
 
     <form method="post" action="/people/{{ person.id }}/role/confirm" novalidate>
-      <input type="hidden" name="changeCph" value="{{ holding.cph }}">
+      {% for h in holdings %}<input type="hidden" name="changeCph" value="{{ h.cph }}">{% endfor %}
       <input type="hidden" name="changeTo" value="{{ toSlug }}">
       <div class="govuk-button-group">
         {{ govukButton({ text: "Confirm role change" }) }}

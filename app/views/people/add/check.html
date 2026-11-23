@@ -3,7 +3,7 @@
 {% set pageName = "Check the details before you send the invitation" %}
 
 {% block pageBeforeContent %}
-  {{ govukBackLink({ text: "Back", href: "/people/add/holdings" }) }}
+  {{ govukBackLink({ text: "Back", href: holdingsChangeUrl }) }}
 {% endblock %}
 
 {% block content %}
@@ -15,9 +15,16 @@
     <h1 class="govuk-heading-l">Check the details before you send the invitation</h1>
 
     {% set holdingsHtml %}
-      <ul class="govuk-list">
-        {% for h in draft.holdings %}<li>{{ h.name }} ({{ h.cph }})</li>{% endfor %}
-      </ul>
+      {% set listHtml %}<ul class="govuk-list">{% for h in draft.holdings %}<li>{{ h.name }} ({{ h.cph }})</li>{% endfor %}</ul>{% endset %}
+      {% if allHoldings %}
+        <p class="govuk-body">All {{ draft.holdings.length }} holdings you manage</p>
+        {{ govukDetails({ summaryText: "See the holdings", html: listHtml, classes: "govuk-!-margin-bottom-0" }) if draft.holdings.length > 3 else listHtml | safe }}
+      {% elif draft.holdings.length > 5 %}
+        <p class="govuk-body">{{ draft.holdings.length }} holdings</p>
+        {{ govukDetails({ summaryText: "See the holdings", html: listHtml, classes: "govuk-!-margin-bottom-0" }) }}
+      {% else %}
+        {{ listHtml | safe }}
+      {% endif %}
     {% endset %}
 
     {{ govukSummaryList({
@@ -40,7 +47,7 @@
         {
           key: { text: "Holdings" },
           value: { html: holdingsHtml },
-          actions: { items: [{ href: "/people/add/holdings", text: "Change", visuallyHiddenText: "holdings" }] }
+          actions: { items: [{ href: holdingsChangeUrl, text: "Change", visuallyHiddenText: "holdings" }] }
         }
       ]
     }) }}

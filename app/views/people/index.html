@@ -1,7 +1,7 @@
 {% extends "layouts/main.html" %}
 
 {% set heading = ("People who can act on " + holding.name) if holding else "People with access" %}
-{% set pageName = heading %}
+{% set pageName = heading + " – Manage access" %}
 
 {% macro peopleTable(list, caption, showSignIn) %}
 <table class="govuk-table">
@@ -35,26 +35,53 @@
 </table>
 {% endmacro %}
 
-{% block pageBeforeContent %}
-  {% if holding %}{{ govukBackLink({ text: "Back to business overview", href: "/business" }) }}{% endif %}
-{% endblock %}
-
 {% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+
+    {% if flash %}
+      <div class="govuk-grid-row"><div class="govuk-grid-column-two-thirds">
+        {{ govukNotificationBanner({ type: "success", text: flash }) }}
+      </div></div>
+    {% endif %}
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">Manage access</h1>
+
+    {% include "includes/access-nav.html" %}
+
+  </div>
+</div>
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    {% if flash %}
-      {{ govukNotificationBanner({ type: "success", text: flash }) }}
-    {% endif %}
-
-    <span class="govuk-caption-l">{{ (holding.cph + " – " + currentBusiness.name) if holding else currentBusiness.name }}</span>
-    <h1 class="govuk-heading-l">{{ heading }}</h1>
+    <h2 class="govuk-heading-m">{{ heading }}</h2>
 
     {% if holding %}
-      <p class="govuk-body">Select a person to change their role on this holding or revoke their access. <a class="govuk-link" href="/people">See everyone with access to {{ currentBusiness.name }}</a>.</p>
+      <p class="govuk-body">{{ holding.cph }}. Select a person to change their role on this holding or revoke their access.</p>
     {% else %}
       <p class="govuk-body">Everyone who can act for {{ currentBusiness.name }}. Select a person to see their role on each holding, change it or revoke it.</p>
+    {% endif %}
+
+    {% if filterHoldings.length > 1 %}
+      {% set holdingItems = [{ value: "", text: "All holdings" }] %}
+      {% for h in filterHoldings %}
+        {% set holdingItems = (holdingItems.push({ value: h.cph, text: h.name + " (" + h.cph + ")", selected: holding and holding.cph == h.cph }), holdingItems) %}
+      {% endfor %}
+      <form method="get" action="/people" novalidate class="govuk-!-margin-bottom-6">
+        <div class="govuk-button-group govuk-!-margin-bottom-0" style="align-items: flex-end">
+          {{ govukSelect({
+            id: "holding",
+            name: "holding",
+            label: { text: "Show people on", classes: "govuk-label--s" },
+            items: holdingItems,
+            formGroup: { classes: "govuk-!-margin-bottom-0 govuk-!-margin-right-3" }
+          }) }}
+          {{ govukButton({ text: "Show", classes: "govuk-button--secondary govuk-!-margin-bottom-0" }) }}
+        </div>
+      </form>
     {% endif %}
 
     {{ govukButton({ text: "Add a person", href: "/people/add/role?new=1" }) }}

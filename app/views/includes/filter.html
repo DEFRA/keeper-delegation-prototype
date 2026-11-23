@@ -1,0 +1,22 @@
+{#
+  Type-to-filter box for long lists of holdings. Only shown when JavaScript
+  is available; without it the full list is still there.
+  target: selector for the list, items: selector for each item in it,
+  selectButtons: adds "Select all shown" and "Clear" for checkboxes.
+#}
+{% macro appFilter(params) %}
+<div class="app-filter" data-app-filter data-app-filter-target="{{ params.target }}" data-app-filter-items="{{ params.items }}">
+  <div class="govuk-form-group govuk-!-margin-bottom-2">
+    <label class="govuk-label govuk-label--s" for="{{ params.id }}">{{ params.label or "Filter holdings" }}</label>
+    <div class="govuk-hint">{{ params.hint or "Type part of a holding name, CPH number or town" }}</div>
+    <input class="govuk-input govuk-!-width-two-thirds" id="{{ params.id }}" type="search" autocomplete="off" spellcheck="false">
+  </div>
+  <p class="govuk-body-s app-filter__count" aria-live="polite"></p>
+  {% if params.selectButtons %}
+  <div class="govuk-button-group govuk-!-margin-bottom-2">
+    <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-app-select="all">Select all shown</button>
+    <button type="button" class="govuk-button govuk-button--secondary govuk-!-margin-bottom-0" data-app-select="none">Clear selection</button>
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

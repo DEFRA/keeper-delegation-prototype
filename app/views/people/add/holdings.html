@@ -1,6 +1,7 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = ("Error: " if errors else "") + "Which holdings can they work on?" %}
+{% set question = "Which holdings can " + data.newPersonName + " work on?" %}
+{% set pageName = ("Error: " if errors else "") + question %}
 
 {% block pageBeforeContent %}
   {{ govukBackLink({ text: "Back", href: "/people/add/details" }) }}
@@ -13,26 +14,40 @@
 
     {% include "includes/error-summary.html" %}
 
-    {% set items = [] %}
-    {% for holding in holdings %}
-      {% set items = (items.push({
-        value: holding.cph,
-        text: holding.name + " (" + holding.cph + ")",
-        hint: { text: holding.address }
-      }), items) %}
-    {% endfor %}
-
     <form method="post" novalidate>
-      {{ govukCheckboxes({
-        name: "newPersonHoldings",
+
+    {% if holdings.length == 1 %}
+      {% set only = holdings[0] %}
+      <span class="govuk-caption-l">Add a {{ data.newPersonRole | lower }}</span>
+      <h1 class="govuk-heading-l">{{ question }}</h1>
+      <p class="govuk-body">You manage one holding, so {{ data.newPersonName }} will be a {{ data.newPersonRole | lower }} on:</p>
+      <p class="govuk-body govuk-!-font-weight-bold">{{ only.name }} ({{ only.cph }})<br><span class="govuk-!-font-weight-regular">{{ only.address }}</span></p>
+      <input type="hidden" name="newPersonHoldings" value="{{ only.cph }}">
+    {% else %}
+      {% set someText %}
+        {%- if holdings.length <= 3 -%}
+          {%- for h in holdings %}{{ h.name }}{% if loop.revindex == 2 %} and {% elif not loop.last %}, {% endif %}{% endfor -%}
+        {%- else -%}
+          You manage {{ holdings.length }} holdings at {{ currentBusiness.name }}
+        {%- endif -%}
+      {% endset %}
+
+      {{ govukRadios({
+        name: "newPersonScope",
         fieldset: {
-          legend: { html: '<span class="govuk-caption-l">Add a ' + (data.newPersonRole | lower) + '</span>Which holdings can ' + data.newPersonName + ' work on?', isPageHeading: true, classes: "govuk-fieldset__legend--l" }
+          legend: { html: '<span class="govuk-caption-l">Add a ' + (data.newPersonRole | lower) + '</span>' + question, isPageHeading: true, classes: "govuk-fieldset__legend--l" }
         },
-        hint: { text: "Select all that apply. They will be a " + (data.newPersonRole | lower) + " on each holding you select, and will not be able to see the others. You can only choose holdings you manage." },
-        items: items,
-        values: data.newPersonHoldings,
-        errorMessage: { text: errors.newPersonHoldings } if errors and errors.newPersonHoldings
+        hint: { text: "They will be a " + (data.newPersonRole | lower) + " on each holding, and will not be able to see the others. You can only give access to holdings you manage." },
+        items: [
+          { value: "all", text: "All " + holdings.length + " holdings you manage", hint: { text: someText } },
+          { value: "some", text: "Only some of them", hint: { text: "Choose the holdings on the next page" } }
+        ],
+        value: data.newPersonScope,
+        errorMessage: { text: errors.newPersonScope } if errors and errors.newPersonScope
       }) }}
+
+      {{ govukInsetText({ text: "To be confirmed: whether \"all holdings\" should also cover holdings added to the business later." }) }}
+    {% endif %}
 
       {{ govukButton({ text: "Continue" }) }}
     </form>
