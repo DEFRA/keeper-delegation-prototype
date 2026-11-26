@@ -246,17 +246,9 @@ function enterBusiness (req, res, rel) {
 
 function startWorkingOn (s, user, rel, holding) {
   if (s.currentHolding === holding.cph) return
+  // Working on a holding is not an access change, so it is not logged in
+  // Activity. The livestock service would keep its own record (see holding.html)
   s.currentHolding = holding.cph
-  audit(s, {
-    actorName: user.name,
-    actorEmail: user.email,
-    action: 'Started working on holding',
-    businessId: rel.businessId,
-    holding: holding.cph,
-    role: roleOn(rel, holding.cph),
-    outcome: 'Recorded',
-    detail: `Acting on behalf of ${findBusiness(s, rel.businessId).name}`
-  })
 }
 
 function takeFlash (s) {
@@ -516,8 +508,6 @@ router.get('/holding', requireSignedIn, (req, res) => {
 
 router.post('/holding', requireSignedIn, (req, res) => {
   const s = getState(req)
-  const user = res.locals.currentUser
-  const rel = res.locals.currentRel
   const holding = res.locals.currentHolding
   if (!holding) return res.redirect('/choose-holding')
 
@@ -527,16 +517,8 @@ router.post('/holding', requireSignedIn, (req, res) => {
     return res.redirect('/holding')
   }
 
-  audit(s, {
-    actorName: user.name,
-    actorEmail: user.email,
-    action: `Recorded a ${recordType.toLowerCase()}`,
-    businessId: rel.businessId,
-    holding: holding.cph,
-    role: roleOn(rel, holding.cph),
-    outcome: 'Recorded',
-    detail: `Acted on behalf of ${res.locals.currentBusiness.name}`
-  })
+  // Not added to Activity: livestock records belong to the livestock service,
+  // which would record who acted, for which business, on which holding
   s.flash = `${recordType} recorded for ${holding.name} (${holding.cph})`
   req.session.data.recordType = ''
   res.redirect('/holding')

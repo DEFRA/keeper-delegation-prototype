@@ -16,34 +16,33 @@ const NORTHFIELD = [
 const nf = from => NORTHFIELD.slice(from[0], from[1]).map(h => h.cph)
 const rolesFor = (cphs, role) => cphs.map(cph => ({ cph, role }))
 
-// Enough everyday activity at Northfield for the Activity page to need paging
-const RECORDERS = [
-  ['Josh Reid', 'josh.reid@example.com', [0, 12]],
-  ['Ruth Moss', 'ruth.moss@example.com', [10, 18]],
-  ['Emma Clark', 'emma.clark@example.com', [6, 10]]
-]
-const RECORDS = ['Birth', 'Movement on', 'Movement off', 'Death', 'Birth', 'Movement off']
-const NORTHFIELD_ACTIVITY = Array.from({ length: 40 }, (_, i) => {
-  const [name, email, range] = RECORDERS[i % 3]
-  const cphs = nf(range)
-  const record = RECORDS[i % RECORDS.length]
-  return {
-    id: 'n' + (i + 1),
-    at: new Date(Date.UTC(2026, 8, 1, 8) + i * 2 * 86400000 + (i % 5) * 3600000).toISOString(),
-    actorName: name,
-    actorEmail: email,
-    action: `Recorded a ${record.toLowerCase()}`,
-    businessId: 'northfield',
-    holding: cphs[(i * 7) % cphs.length],
-    role: 'Delegate',
-    outcome: 'Recorded',
-    detail: 'Acted on behalf of Northfield Estates'
-  }
+// Former seasonal delegates at Northfield: each was invited, accepted and
+// later had their access revoked. Gives Activity enough access events to need
+// paging, and Access history some ended periods (LKPR-439, LKPR-443)
+const SEASONAL = [
+  ['Sian Price', 'sian.price@example.com', [0, 2], 'Mark Ellis', '2025-02-03', '2025-05-30', 'Lambing season ended'],
+  ['Gareth Lloyd', 'gareth.lloyd@example.com', [2, 5], 'Mark Ellis', '2025-02-10', '2025-06-13', 'Lambing season ended'],
+  ['Hannah Rigg', 'hannah.rigg@example.com', [6, 9], 'David Wright', '2025-04-14', '2025-09-26', 'Summer cover ended'],
+  ['Will Thwaite', 'will.thwaite@example.com', [9, 12], 'Mark Ellis', '2025-07-07', '2025-10-31', 'Contract ended'],
+  ['Megan Dodd', 'megan.dodd@example.com', [12, 15], 'David Wright', '2026-01-12', '2026-05-29', 'Lambing season ended'],
+  ['Rob Airey', 'rob.airey@example.com', [15, 18], 'Mark Ellis', '2026-02-02', '2026-06-26', 'Lambing season ended']
+].map(([name, email, range, invitedBy, from, to, reason], i) => ({
+  rel: 'r' + (17 + i), name, email, cphs: nf(range), invitedBy, reason,
+  sent: from + 'T09:00:00Z', accepted: from + 'T18:30:00Z', revoked: to + 'T16:00:00Z'
+}))
+const actorEmail = name => name.toLowerCase().replace(' ', '.') + '@example.com'
+const SEASONAL_ACTIVITY = SEASONAL.flatMap((p, i) => {
+  const base = { recipientName: p.name, recipientEmail: p.email, businessId: 'northfield', role: 'Delegate' }
+  return [
+    { id: `s${i}a`, at: p.sent, actorName: p.invitedBy, actorEmail: actorEmail(p.invitedBy), action: 'Invitation sent', outcome: 'Pending enrolment', detail: 'Holdings: ' + p.cphs.join(', '), ...base },
+    { id: `s${i}b`, at: p.accepted, actorName: p.name, actorEmail: p.email, action: 'Appointment completed', outcome: 'Granted', detail: 'Enrolment and sign-in checks completed', ...base },
+    { id: `s${i}c`, at: p.revoked, actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Access revoked', outcome: 'Revoked', detail: p.reason, ...base }
+  ]
 })
 
 module.exports = {
   // Bump when the shape of this data changes, so old sessions are reset
-  version: 5,
+  version: 6,
   nextId: 100,
 
   currentEmail: null,
@@ -182,11 +181,14 @@ module.exports = {
       // A former keeper administrator, for access history (LKPR-443)
       id: 'r16', email: 'mark.ellis@example.com', name: 'Mark Ellis', businessId: 'northfield', status: 'Removed', addedBy: 'David Wright', addedOn: '2025-03-01T09:00:00Z', removedOn: '2026-07-31T16:00:00Z',
       roles: []
-    }
+    },
+    ...SEASONAL.map(p => ({
+      id: p.rel, email: p.email, name: p.name, businessId: 'northfield', status: 'Removed', addedBy: p.invitedBy, addedOn: p.sent, removedOn: p.revoked, roles: []
+    }))
   ],
 
   audit: [
-    ...NORTHFIELD_ACTIVITY,
+    ...SEASONAL_ACTIVITY,
     { id: 'a1', at: '2026-09-02T09:12:00Z', actorName: 'Jane Smith', actorEmail: 'jane.smith@example.com', action: 'CPH holder role granted', recipientName: 'Jane Smith', recipientEmail: 'jane.smith@example.com', businessId: 'hillside', role: 'CPH holder', outcome: 'Granted', detail: 'Email address matched the CPH holder record in SAM' },
     { id: 'a2', at: '2026-09-14T14:30:00Z', actorName: 'Alan Green', actorEmail: 'alan.green@example.com', action: 'CPH holder role granted', recipientName: 'Alan Green', recipientEmail: 'alan.green@example.com', businessId: 'meadowview', role: 'CPH holder', outcome: 'Granted', detail: 'Email address matched the CPH holder record in SAM' },
     { id: 'a3', at: '2026-09-20T08:45:00Z', actorName: 'Alan Green', actorEmail: 'alan.green@example.com', action: 'Invitation sent', recipientName: 'Tom Brown', recipientEmail: 'tom.brown@example.com', businessId: 'meadowview', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 44/112/0007' },
@@ -199,7 +201,6 @@ module.exports = {
     { id: 'a12', at: '2026-10-21T08:15:00Z', actorName: 'Lucy Hart', actorEmail: 'lucy.hart@example.com', action: 'Appointment completed', recipientName: 'Lucy Hart', recipientEmail: 'lucy.hart@example.com', businessId: 'hillside', role: 'Keeper administrator', outcome: 'Granted', detail: 'Enrolment and sign-in checks completed' },
     { id: 'a13', at: '2026-10-28T15:30:00Z', actorName: 'Jane Smith', actorEmail: 'jane.smith@example.com', action: 'Invitation sent', recipientName: 'Alan Green', recipientEmail: 'alan.green@example.com', businessId: 'hillside', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 12/346/0103' },
     { id: 'a14', at: '2026-10-29T12:02:00Z', actorName: 'Alan Green', actorEmail: 'alan.green@example.com', action: 'Appointment completed', recipientName: 'Alan Green', recipientEmail: 'alan.green@example.com', businessId: 'hillside', role: 'Delegate', outcome: 'Granted', detail: 'Enrolment and sign-in checks completed' },
-    { id: 'a9', at: '2026-11-03T13:10:00Z', actorName: 'Tom Brown', actorEmail: 'tom.brown@example.com', action: 'Recorded a movement on', businessId: 'hillside', holding: '12/345/0001', role: 'Delegate', outcome: 'Recorded', detail: 'Acted on behalf of Hillside Farm Ltd' },
     { id: 'a15', at: '2026-08-19T09:00:00Z', actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'CPH holder role granted', recipientName: 'David Wright', recipientEmail: 'david.wright@example.com', businessId: 'northfield', role: 'CPH holder', outcome: 'Granted', detail: 'Email address matched the CPH holder record in SAM' },
     { id: 'a16', daysAgo: 4, actorName: 'Emma Clark', actorEmail: 'emma.clark@example.com', action: 'Invitation sent', recipientName: 'Owen Hale', recipientEmail: 'owen.hale@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 16/201/0017, 16/201/0023, 16/201/0031' },
     { id: 'a17', daysAgo: 9, actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Invitation sent', recipientName: 'Kate Lowe', recipientEmail: 'kate.lowe@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 16/201/0084, 16/201/0091, 16/201/0098' },
@@ -223,7 +224,8 @@ const PAST = [
   ...nf([0, 6]).map(cph => ({ email: 'mark.ellis@example.com', name: 'Mark Ellis', businessId: 'northfield', cph, role: 'Keeper administrator', from: '2025-03-02T08:40:00Z', to: '2026-07-31T16:00:00Z', ended: 'Revoked' })),
   { email: 'josh.reid@example.com', name: 'Josh Reid', businessId: 'northfield', cph: '16/201/0004', role: 'Delegate', from: '2025-01-06T09:00:00Z', to: '2025-06-30T17:00:00Z', ended: 'Revoked' },
   ...nf([0, 6]).map(cph => ({ email: 'emma.clark@example.com', name: 'Emma Clark', businessId: 'northfield', cph, role: 'Delegate', from: '2026-09-01T10:30:00Z', to: '2026-10-10T10:00:00Z', ended: 'Role changed' })),
-  { email: 'tom.brown@example.com', name: 'Tom Brown', businessId: 'hillside', cph: '12/346/0103', role: 'Delegate', from: '2026-06-01T08:00:00Z', to: '2026-08-31T12:00:00Z', ended: 'Revoked' }
+  { email: 'tom.brown@example.com', name: 'Tom Brown', businessId: 'hillside', cph: '12/346/0103', role: 'Delegate', from: '2026-06-01T08:00:00Z', to: '2026-08-31T12:00:00Z', ended: 'Revoked' },
+  ...SEASONAL.flatMap(p => p.cphs.map(cph => ({ email: p.email, name: p.name, businessId: 'northfield', cph, role: 'Delegate', from: p.accepted, to: p.revoked, ended: 'Revoked' })))
 ]
 module.exports.periods = [
   ...PAST,

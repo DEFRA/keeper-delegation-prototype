@@ -28,7 +28,7 @@
     }) }}
 
     {{ govukInsetText({
-      text: "Everything you do here is recorded against your name and this holding, so the business can see who did what."
+      text: "Everything you do here is recorded against your name, this business and this holding."
     }) }}
 
     {% if canManageHolding %}
@@ -40,7 +40,7 @@
     <h2 class="govuk-heading-m">Record livestock activity</h2>
 
     {{ govukInsetText({
-      text: "Prototype only: this stands in for the livestock record tasks, to show how actions are recorded."
+      text: "Prototype only: this stands in for the livestock record tasks. Those records belong to the livestock service, so they do not appear in Activity here. How a keeper sees what people have done in their name is still to be decided."
     }) }}
 
     {% set recordItems = [] %}
