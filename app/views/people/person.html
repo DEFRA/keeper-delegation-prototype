@@ -78,7 +78,7 @@
       {% endif %}
     {% endif %}
 
-    <h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status in ["Invited", "Expired", "Declined"] else "Holdings and roles" }}</h2>
+    <h2 class="govuk-heading-m" id="holdings">{{ "Holdings and roles offered" if person.status in ["Invited", "Expired", "Declined"] else "Holdings and roles" }}</h2>
 
     {{ tableSearch(table, "search-person-holdings") }}
 

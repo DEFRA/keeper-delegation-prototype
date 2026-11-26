@@ -150,9 +150,11 @@ function pageList (list, query, path, { size = 10, extra = {}, label = 'Pages' }
   const pages = Math.max(1, Math.ceil(list.length / size))
   const page = Math.min(pages, Math.max(1, parseInt(query.page, 10) || 1))
   const start = (page - 1) * size
+  // path may end in #anchor so the page reopens at the table, not the top
+  const [base, anchor] = path.split('#')
   const href = n => {
     const qs = new URLSearchParams({ ...keep, ...(n > 1 ? { page: n } : {}) }).toString()
-    return path + (qs ? '?' + qs : '')
+    return base + (qs ? '?' + qs : '') + (anchor ? '#' + anchor : '')
   }
   return {
     items: list.slice(start, start + size),
@@ -569,7 +571,7 @@ router.get('/business', requireSignedIn, (req, res) => {
   const rels = s.relationships.filter(r => r.businessId === businessId)
   res.render('business', {
     holdings: res.locals.currentRelationship.holdingsList,
-    table: pageHoldings(res.locals.currentRelationship.holdingsList, req.query, '/business'),
+    table: pageHoldings(res.locals.currentRelationship.holdingsList, req.query, '/business#holdings'),
     activeCount: rels.filter(r => r.status === 'Active').length,
     invitedCount: rels.filter(r => r.status === 'Invited').length
   })
@@ -605,11 +607,11 @@ router.get('/people', (req, res) => {
 
   const pageExtra = { holding: holding ? holding.cph : '', q }
   res.render('people/index', {
-    active: pageList(active, req.query, '/people', { size: 20, extra: pageExtra, label: 'People pages' }),
+    active: pageList(active, req.query, '/people#people-search', { size: 20, extra: pageExtra, label: 'People pages' }),
     invited,
     q,
     searchable: totalPeople > 5,
-    clearHref: '/people' + (holding ? '?holding=' + encodeURIComponent(holding.cph) : ''),
+    clearHref: '/people' + (holding ? '?holding=' + encodeURIComponent(holding.cph) : '') + '#people-search',
     delegatedCount,
     holding,
     canManageHolding: holding && res.locals.adminCphs.includes(holding.cph),
@@ -839,7 +841,7 @@ router.get('/people/:id', (req, res) => {
     .sort((a, b) => b.at.localeCompare(a.at) || b.order - a.order)
   res.render('people/person', {
     person,
-    table: pageHoldings(person.holdingsList, req.query, `/people/${rel.id}`),
+    table: pageHoldings(person.holdingsList, req.query, `/people/${rel.id}#holdings`),
     history: history.slice(0, 5),
     historyCount: history.length,
     flash: takeFlash(s),
@@ -1141,7 +1143,7 @@ router.get('/access-history', (req, res) => {
     .sort((a, b) => (!a.to - !b.to) * -1 || (b.to || '').localeCompare(a.to || '') || b.from.localeCompare(a.from))
 
   res.render('access-history', {
-    table: pageList(rows, req.query, '/access-history', { size: 20, extra: { person: person && person.id, holding: holding && holding.cph, status }, label: 'Access history pages' }),
+    table: pageList(rows, req.query, '/access-history#history', { size: 20, extra: { person: person && person.id, holding: holding && holding.cph, status }, label: 'Access history pages' }),
     people,
     holdings: business.holdings,
     person,
@@ -1188,7 +1190,7 @@ router.get('/activity', (req, res) => {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   res.render('activity', {
-    table: pageList(entries, req.query, '/activity', { size: 20, extra: { person: person && person.id, holding: holding && holding.cph }, label: 'Activity pages' }),
+    table: pageList(entries, req.query, '/activity#activity', { size: 20, extra: { person: person && person.id, holding: holding && holding.cph }, label: 'Activity pages' }),
     total: all.length,
     people,
     holdings: business.holdings,

@@ -14,7 +14,7 @@
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <h2 class="govuk-heading-m">Activity</h2>
+    <h2 class="govuk-heading-m" id="activity">Activity</h2>
     <p class="govuk-body">A record of who has been given access, any requests that were turned down, and what people have done on your holdings. Newest first.</p>
 
     {% set personItems = [{ value: "", text: "Everyone" }] %}
@@ -26,7 +26,7 @@
       {% set holdingItems = (holdingItems.push({ value: h.cph, text: h.name + " (" + h.cph + ")", selected: holding and holding.cph == h.cph }), holdingItems) %}
     {% endfor %}
 
-    <form method="get" action="/activity" novalidate class="govuk-!-margin-bottom-4">
+    <form method="get" action="/activity#activity" novalidate class="govuk-!-margin-bottom-4">
       <div class="app-table-search__row">
         {{ govukSelect({
           id: "person",
@@ -52,7 +52,7 @@
       <p class="govuk-body" role="status">
         {{ table.matched }} {{ "entry" if table.matched == 1 else "entries" }}
         {% if person %} involving {{ person.name }}{% endif %}{% if holding %} on {{ holding.name }}{% endif %}.
-        <a class="govuk-link" href="/activity">Show all activity</a>
+        <a class="govuk-link" href="/activity#activity">Show all activity</a>
       </p>
     {% elif table.pagination %}
       <p class="govuk-body">Showing {{ table.from }} to {{ table.to }} of {{ total }} entries</p>

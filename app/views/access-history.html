@@ -14,7 +14,7 @@
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
-    <h2 class="govuk-heading-m">Access history</h2>
+    <h2 class="govuk-heading-m" id="history">Access history</h2>
     <p class="govuk-body">Each period someone has had a role on your holdings, including access that has ended. If someone had the same role twice, you will see 2 rows.</p>
 
     {% set personItems = [{ value: "", text: "Everyone" }] %}
@@ -26,7 +26,7 @@
       {% set holdingItems = (holdingItems.push({ value: h.cph, text: h.name + " (" + h.cph + ")", selected: holding and holding.cph == h.cph }), holdingItems) %}
     {% endfor %}
 
-    <form method="get" action="/access-history" novalidate class="govuk-!-margin-bottom-4">
+    <form method="get" action="/access-history#history" novalidate class="govuk-!-margin-bottom-4">
       <div class="app-table-search__row">
         {{ govukSelect({
           id: "person",
@@ -62,7 +62,7 @@
     {% if filtered %}
       <p class="govuk-body" role="status">
         {{ table.matched }} {{ "period" if table.matched == 1 else "periods" }} of access{% if person %} for {{ person.name }}{% endif %}{% if holding %} on {{ holding.name }}{% endif %}.
-        <a class="govuk-link" href="/access-history">Show all</a>
+        <a class="govuk-link" href="/access-history#history">Show all</a>
       </p>
     {% elif table.pagination %}
       <p class="govuk-body">Showing {{ table.from }} to {{ table.to }} of {{ table.matched }} periods of access</p>
