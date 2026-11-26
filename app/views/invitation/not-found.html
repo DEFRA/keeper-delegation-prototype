@@ -1,15 +1,43 @@
 {% extends "layouts/main.html" %}
 
-{% set pageName = "This invitation is no longer valid" %}
+{% set status = invitation.status if invitation else "" %}
+{% if status == "Expired" %}
+  {% set heading = "This invitation has expired" %}
+{% elif status == "Withdrawn" %}
+  {% set heading = "This invitation has been withdrawn" %}
+{% elif status == "Declined" %}
+  {% set heading = "You have declined this invitation" %}
+{% elif status == "Active" %}
+  {% set heading = "You have already accepted this invitation" %}
+{% else %}
+  {% set heading = "This invitation is no longer valid" %}
+{% endif %}
+{% set pageName = heading %}
 
 {% block content %}
 
 <div class="govuk-grid-row">
   <div class="govuk-grid-column-two-thirds">
 
-    <h1 class="govuk-heading-l">This invitation is no longer valid</h1>
-    <p class="govuk-body">It may already have been accepted, or the person who sent it may have removed it.</p>
-    <p class="govuk-body">If you have already accepted it, you can <a class="govuk-link" href="/sign-in">sign in</a>.</p>
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    {% if status == "Expired" %}
+      <p class="govuk-body">Invitations must be accepted within 7 days. The invitation from {{ invitation.addedBy }} to help with {{ invitation.businessName }} expired on {{ invitation.expiresOn | formatDate }}.</p>
+      <p class="govuk-body">If you still need access, ask {{ invitation.addedBy }} to send you the invitation again.</p>
+    {% elif status == "Withdrawn" %}
+      <p class="govuk-body">{{ invitation.businessName }} has withdrawn this invitation, so you cannot use it to get access.</p>
+      <p class="govuk-body">If you think this is a mistake, contact the person who invited you.</p>
+    {% elif status == "Declined" %}
+      <p class="govuk-body">You declined the invitation to help with {{ invitation.businessName }}. You do not have access to the business.</p>
+      <p class="govuk-body">If you change your mind, ask {{ invitation.addedBy }} to send you a new invitation.</p>
+    {% elif status == "Active" %}
+      <p class="govuk-body">You can <a class="govuk-link" href="/sign-in">sign in</a> to work on {{ invitation.businessName }}.</p>
+    {% else %}
+      <p class="govuk-body">It may already have been accepted, or the person who sent it may have removed it.</p>
+      <p class="govuk-body">If you have already accepted it, you can <a class="govuk-link" href="/sign-in">sign in</a>.</p>
+    {% endif %}
+
+    {{ govukInsetText({ text: "Prototype only: the wording on this page is a placeholder and needs wider review (LKPR-428)." }) }}
 
   </div>
 </div>

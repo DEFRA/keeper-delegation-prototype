@@ -43,7 +43,7 @@ const NORTHFIELD_ACTIVITY = Array.from({ length: 40 }, (_, i) => {
 
 module.exports = {
   // Bump when the shape of this data changes, so old sessions are reset
-  version: 4,
+  version: 5,
   nextId: 100,
 
   currentEmail: null,
@@ -94,18 +94,21 @@ module.exports = {
   ineligible: ['blocked@example.com'],
 
   people: [
-    { email: 'jane.smith@example.com', name: 'Jane Smith', lastSignIn: '2026-11-16T08:02:00Z' },
-    { email: 'alan.green@example.com', name: 'Alan Green', lastSignIn: '2026-11-10T17:25:00Z' },
-    { email: 'mary.evans@example.com', name: 'Mary Evans' },
-    { email: 'sam.jones@example.com', name: 'Sam Jones', lastSignIn: '2026-11-12T11:31:00Z' },
-    { email: 'tom.brown@example.com', name: 'Tom Brown', lastSignIn: '2026-11-14T06:48:00Z' },
-    { email: 'priya.patel@example.com', name: 'Priya Patel' },
-    { email: 'lucy.hart@example.com', name: 'Lucy Hart', lastSignIn: '2026-11-15T09:10:00Z' },
-    { email: 'david.wright@example.com', name: 'David Wright', lastSignIn: '2026-11-17T07:40:00Z' },
-    { email: 'emma.clark@example.com', name: 'Emma Clark', lastSignIn: '2026-11-18T13:05:00Z' },
-    { email: 'josh.reid@example.com', name: 'Josh Reid', lastSignIn: '2026-11-18T06:20:00Z' },
-    { email: 'ruth.moss@example.com', name: 'Ruth Moss', lastSignIn: '2026-11-11T16:45:00Z' },
-    { email: 'owen.hale@example.com', name: 'Owen Hale' }
+    { email: 'jane.smith@example.com', name: 'Jane Smith', phone: '07700 900101', lastSignIn: '2026-11-16T08:02:00Z' },
+    { email: 'alan.green@example.com', name: 'Alan Green', phone: '07700 900102', lastSignIn: '2026-11-10T17:25:00Z' },
+    { email: 'mary.evans@example.com', name: 'Mary Evans', phone: '07700 900103' },
+    { email: 'sam.jones@example.com', name: 'Sam Jones', phone: '07700 900104', lastSignIn: '2026-11-12T11:31:00Z' },
+    { email: 'tom.brown@example.com', name: 'Tom Brown', phone: '07700 900105', lastSignIn: '2026-11-14T06:48:00Z' },
+    { email: 'priya.patel@example.com', name: 'Priya Patel', phone: '07700 900106' },
+    { email: 'lucy.hart@example.com', name: 'Lucy Hart', phone: '07700 900107', lastSignIn: '2026-11-15T09:10:00Z' },
+    { email: 'david.wright@example.com', name: 'David Wright', phone: '07700 900108', lastSignIn: '2026-11-17T07:40:00Z' },
+    { email: 'emma.clark@example.com', name: 'Emma Clark', phone: '07700 900109', lastSignIn: '2026-11-18T13:05:00Z' },
+    { email: 'josh.reid@example.com', name: 'Josh Reid', phone: '07700 900110', lastSignIn: '2026-11-18T06:20:00Z' },
+    { email: 'ruth.moss@example.com', name: 'Ruth Moss', phone: '07700 900111', lastSignIn: '2026-11-11T16:45:00Z' },
+    { email: 'owen.hale@example.com', name: 'Owen Hale', phone: '07700 900112' },
+    { email: 'kate.lowe@example.com', name: 'Kate Lowe' },
+    { email: 'ben.carter@example.com', name: 'Ben Carter' },
+    { email: 'mark.ellis@example.com', name: 'Mark Ellis', lastSignIn: '2026-07-30T10:12:00Z' }
   ],
 
   // A relationship is one person's access to one business. Roles are held per
@@ -133,7 +136,7 @@ module.exports = {
       roles: [{ cph: '44/112/0007', role: 'Delegate' }]
     },
     {
-      id: 'r6', email: 'priya.patel@example.com', name: 'Priya Patel', businessId: 'hillside', status: 'Invited', addedBy: 'Sam Jones', addedOn: '2026-11-12T11:40:00Z',
+      id: 'r6', email: 'priya.patel@example.com', name: 'Priya Patel', businessId: 'hillside', status: 'Invited', addedBy: 'Sam Jones', sentDaysAgo: 2,
       roles: [{ cph: '12/346/0103', role: 'Delegate' }]
     },
     {
@@ -163,8 +166,22 @@ module.exports = {
       roles: rolesFor(nf([10, 18]), 'Delegate')
     },
     {
-      id: 'r13', email: 'owen.hale@example.com', name: 'Owen Hale', businessId: 'northfield', status: 'Invited', addedBy: 'Emma Clark', addedOn: '2026-11-17T11:15:00Z',
+      id: 'r13', email: 'owen.hale@example.com', name: 'Owen Hale', businessId: 'northfield', status: 'Invited', addedBy: 'Emma Clark', sentDaysAgo: 4,
       roles: rolesFor(nf([2, 5]), 'Delegate')
+    },
+    {
+      // Sent 9 days ago, so it expires (7 days) as soon as the session starts (LKPR-430)
+      id: 'r14', email: 'kate.lowe@example.com', name: 'Kate Lowe', businessId: 'northfield', status: 'Invited', addedBy: 'David Wright', sentDaysAgo: 9,
+      roles: rolesFor(nf([12, 15]), 'Delegate')
+    },
+    {
+      id: 'r15', email: 'ben.carter@example.com', name: 'Ben Carter', businessId: 'northfield', status: 'Declined', addedBy: 'David Wright', addedOn: '2026-11-10T09:30:00Z', declinedOn: '2026-11-11T18:05:00Z',
+      roles: rolesFor(nf([0, 2]), 'Delegate')
+    },
+    {
+      // A former keeper administrator, for access history (LKPR-443)
+      id: 'r16', email: 'mark.ellis@example.com', name: 'Mark Ellis', businessId: 'northfield', status: 'Removed', addedBy: 'David Wright', addedOn: '2025-03-01T09:00:00Z', removedOn: '2026-07-31T16:00:00Z',
+      roles: []
     }
   ],
 
@@ -184,7 +201,42 @@ module.exports = {
     { id: 'a14', at: '2026-10-29T12:02:00Z', actorName: 'Alan Green', actorEmail: 'alan.green@example.com', action: 'Appointment completed', recipientName: 'Alan Green', recipientEmail: 'alan.green@example.com', businessId: 'hillside', role: 'Delegate', outcome: 'Granted', detail: 'Enrolment and sign-in checks completed' },
     { id: 'a9', at: '2026-11-03T13:10:00Z', actorName: 'Tom Brown', actorEmail: 'tom.brown@example.com', action: 'Recorded a movement on', businessId: 'hillside', holding: '12/345/0001', role: 'Delegate', outcome: 'Recorded', detail: 'Acted on behalf of Hillside Farm Ltd' },
     { id: 'a15', at: '2026-08-19T09:00:00Z', actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'CPH holder role granted', recipientName: 'David Wright', recipientEmail: 'david.wright@example.com', businessId: 'northfield', role: 'CPH holder', outcome: 'Granted', detail: 'Email address matched the CPH holder record in SAM' },
-    { id: 'a16', at: '2026-11-17T11:15:00Z', actorName: 'Emma Clark', actorEmail: 'emma.clark@example.com', action: 'Invitation sent', recipientName: 'Owen Hale', recipientEmail: 'owen.hale@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 16/201/0017, 16/201/0023, 16/201/0031' },
-    { id: 'a10', at: '2026-11-12T11:40:00Z', actorName: 'Sam Jones', actorEmail: 'sam.jones@example.com', action: 'Invitation sent', recipientName: 'Priya Patel', recipientEmail: 'priya.patel@example.com', businessId: 'hillside', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 12/346/0103' }
+    { id: 'a16', daysAgo: 4, actorName: 'Emma Clark', actorEmail: 'emma.clark@example.com', action: 'Invitation sent', recipientName: 'Owen Hale', recipientEmail: 'owen.hale@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 16/201/0017, 16/201/0023, 16/201/0031' },
+    { id: 'a17', daysAgo: 9, actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Invitation sent', recipientName: 'Kate Lowe', recipientEmail: 'kate.lowe@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 16/201/0084, 16/201/0091, 16/201/0098' },
+    { id: 'a18', at: '2026-11-10T09:30:00Z', actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Invitation sent', recipientName: 'Ben Carter', recipientEmail: 'ben.carter@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 16/201/0004, 16/201/0011' },
+    { id: 'a19', at: '2026-11-11T18:05:00Z', actorName: 'Ben Carter', actorEmail: 'ben.carter@example.com', action: 'Invitation declined', recipientName: 'Ben Carter', recipientEmail: 'ben.carter@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Declined', detail: 'Delegate on 16/201/0004, 16/201/0011' },
+    { id: 'a20', at: '2025-03-02T08:40:00Z', actorName: 'Mark Ellis', actorEmail: 'mark.ellis@example.com', action: 'Appointment completed', recipientName: 'Mark Ellis', recipientEmail: 'mark.ellis@example.com', businessId: 'northfield', role: 'Keeper administrator', outcome: 'Granted', detail: 'Enrolment and sign-in checks completed' },
+    { id: 'a21', at: '2025-01-06T09:00:00Z', actorName: 'Josh Reid', actorEmail: 'josh.reid@example.com', action: 'Appointment completed', recipientName: 'Josh Reid', recipientEmail: 'josh.reid@example.com', businessId: 'northfield', role: 'Delegate', outcome: 'Granted', detail: 'Delegate on 16/201/0004' },
+    { id: 'a22', at: '2025-06-30T17:00:00Z', actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Access revoked', recipientName: 'Josh Reid', recipientEmail: 'josh.reid@example.com', businessId: 'northfield', holding: '16/201/0004', role: 'Delegate', outcome: 'Revoked', detail: 'End of seasonal contract' },
+    { id: 'a23', at: '2026-07-31T16:00:00Z', actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Access revoked', recipientName: 'Mark Ellis', recipientEmail: 'mark.ellis@example.com', businessId: 'northfield', role: 'Keeper administrator', outcome: 'Revoked', detail: 'Keeper administrator on 6 holdings' },
+    { id: 'a24', at: '2026-10-10T10:00:00Z', actorName: 'David Wright', actorEmail: 'david.wright@example.com', action: 'Promoted to keeper administrator', recipientName: 'Emma Clark', recipientEmail: 'emma.clark@example.com', businessId: 'northfield', role: 'Keeper administrator', outcome: 'Changed', detail: 'Was delegate on 6 holdings' },
+    { id: 'a25', at: '2026-08-31T12:00:00Z', actorName: 'Jane Smith', actorEmail: 'jane.smith@example.com', action: 'Access revoked', recipientName: 'Tom Brown', recipientEmail: 'tom.brown@example.com', businessId: 'hillside', holding: '12/346/0103', role: 'Delegate', outcome: 'Revoked', detail: 'Summer cover ended' },
+    { id: 'a10', daysAgo: 2, actorName: 'Sam Jones', actorEmail: 'sam.jones@example.com', action: 'Invitation sent', recipientName: 'Priya Patel', recipientEmail: 'priya.patel@example.com', businessId: 'hillside', role: 'Delegate', outcome: 'Pending enrolment', detail: 'Holdings: 12/346/0103' }
   ]
 }
+
+// Periods of access, one per person, role and holding, with start and end
+// dates (LKPR-443 access history). Current access comes from the relationships
+// above; past access is listed here. Kept up to date as roles change.
+const ROLE_CHANGED = { 'emma.clark@example.com': '2026-10-10T10:00:00Z' }
+const PAST = [
+  ...nf([0, 6]).map(cph => ({ email: 'mark.ellis@example.com', name: 'Mark Ellis', businessId: 'northfield', cph, role: 'Keeper administrator', from: '2025-03-02T08:40:00Z', to: '2026-07-31T16:00:00Z', ended: 'Revoked' })),
+  { email: 'josh.reid@example.com', name: 'Josh Reid', businessId: 'northfield', cph: '16/201/0004', role: 'Delegate', from: '2025-01-06T09:00:00Z', to: '2025-06-30T17:00:00Z', ended: 'Revoked' },
+  ...nf([0, 6]).map(cph => ({ email: 'emma.clark@example.com', name: 'Emma Clark', businessId: 'northfield', cph, role: 'Delegate', from: '2026-09-01T10:30:00Z', to: '2026-10-10T10:00:00Z', ended: 'Role changed' })),
+  { email: 'tom.brown@example.com', name: 'Tom Brown', businessId: 'hillside', cph: '12/346/0103', role: 'Delegate', from: '2026-06-01T08:00:00Z', to: '2026-08-31T12:00:00Z', ended: 'Revoked' }
+]
+module.exports.periods = [
+  ...PAST,
+  ...module.exports.relationships
+    .filter(r => r.status === 'Active')
+    .flatMap(r => r.roles.map(({ cph, role }) => ({
+      email: r.email,
+      name: r.name,
+      businessId: r.businessId,
+      cph,
+      role,
+      from: (role === 'Keeper administrator' && ROLE_CHANGED[r.email]) || r.addedOn,
+      to: null,
+      ended: null
+    })))
+].map((p, i) => ({ id: 'p' + (i + 1), ...p }))

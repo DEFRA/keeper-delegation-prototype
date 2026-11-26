@@ -1,0 +1,51 @@
+{% extends "layouts/main.html" %}
+
+{% set heading = "Send the invitation to " + person.name + " again?" %}
+{% set pageName = heading %}
+
+{% block pageBeforeContent %}
+  {{ govukBackLink({ text: "Back", href: "/people/" + person.id }) }}
+{% endblock %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">{{ heading }}</h1>
+
+    {% if person.status == "Expired" %}
+      <p class="govuk-body">The invitation expired on {{ person.expiresOn | formatDate }} because {{ person.name }} did not accept it within 7 days.</p>
+    {% else %}
+      <p class="govuk-body">{{ person.name }} has not accepted the invitation yet. It was sent on {{ person.sentOn | formatDate }}.</p>
+    {% endif %}
+
+    {% set rolesHtml %}
+      {% for h in person.holdingsList %}{% if loop.index <= 5 %}{{ h.role }} on {{ h.name }} ({{ h.cph }}){% if not loop.last %}<br>{% endif %}{% endif %}{% endfor %}
+      {% if person.holdingsList.length > 5 %}and {{ person.holdingsList.length - 5 }} more holdings{% endif %}
+    {% endset %}
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "Email address" }, value: { text: person.email } },
+        { key: { text: "Role and holdings" }, value: { html: rolesHtml } },
+        { key: { text: "New invitation expires" }, value: { text: newExpiry | formatDate } }
+      ]
+    }) }}
+
+    <p class="govuk-body">We will email {{ person.email }} a new link. The role and holdings stay the same. {% if person.status == "Invited" %}The link in the earlier email will also keep working until the new expiry date.{% endif %}</p>
+
+    {{ govukInsetText({ text: "To be confirmed: how invitations reach people (email, notifications or an inbox in the service). This prototype assumes an email with a link." }) }}
+
+    <form method="post" novalidate>
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Send invitation again" }) }}
+        <a class="govuk-link" href="/people/{{ person.id }}">Cancel</a>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+{% endblock %}

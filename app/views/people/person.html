@@ -27,11 +27,14 @@
       rows: [
         { key: { text: "Email address" }, value: { text: person.email } },
         { key: { text: "Status" }, value: { html: '<strong class="govuk-tag ' + (person.status | tagClass) + '">' + person.status + '</strong>' } },
-        { key: { text: "Roles offered" if person.status == "Invited" else "Roles" }, value: { html: rolesHtml } },
+        { key: { text: "Roles offered" if person.status in ["Invited", "Expired", "Declined"] else "Roles" }, value: { html: rolesHtml } },
         { key: { text: "Last signed in" }, value: { text: (person.lastSignIn | formatDateTime) or "Not yet" } },
         { key: { text: "Added by" }, value: { text: person.addedBy } },
         { key: { text: "Added on" }, value: { text: person.addedOn | formatDate } },
-        { key: { text: "Invitation expires" }, value: { text: person.expiresOn | formatDate } } if person.status == "Invited"
+        { key: { text: "Invitation last sent" }, value: { text: (person.sentOn | formatDate) + (" (sent " + (person.resentCount + 1) + " times)" if person.resentCount else "") } } if person.status in ["Invited", "Expired"] and person.resentCount,
+        { key: { text: "Invitation expires" }, value: { text: person.expiresOn | formatDate } } if person.status == "Invited",
+        { key: { text: "Invitation expired" }, value: { text: person.expiresOn | formatDate } } if person.status == "Expired",
+        { key: { text: "Declined on" }, value: { text: person.declinedOn | formatDate } } if person.status == "Declined"
       ] | select
     }) }}
 
@@ -40,7 +43,23 @@
       {{ govukInsetText({
         html: 'Prototype only: <a class="govuk-link" href="/invitation?id=' + person.id + '">open the invitation as ' + person.name + '</a>.'
       }) }}
-      {{ govukButton({ text: "Withdraw invitation", href: "/people/" + person.id + "/withdraw", classes: "govuk-button--secondary" }) }}
+      <div class="govuk-button-group">
+        {{ govukButton({ text: "Send invitation again", href: "/people/" + person.id + "/resend", classes: "govuk-button--secondary" }) }}
+        {{ govukButton({ text: "Withdraw invitation", href: "/people/" + person.id + "/withdraw", classes: "govuk-button--warning" }) }}
+      </div>
+    {% elif person.status == "Expired" %}
+      <p class="govuk-body">{{ person.name }} did not accept the invitation within 7 days, so it has expired and the link no longer works.</p>
+      <form method="post" action="/people/{{ person.id }}/dismiss" novalidate>
+        <div class="govuk-button-group">
+          {{ govukButton({ text: "Send invitation again", href: "/people/" + person.id + "/resend" }) }}
+          {{ govukButton({ text: "Remove from list", classes: "govuk-button--secondary" }) }}
+        </div>
+      </form>
+    {% elif person.status == "Declined" %}
+      <p class="govuk-body">{{ person.name }} declined the invitation, so they do not have access to {{ currentBusiness.name }}. To give them access, <a class="govuk-link" href="/people/add/role?new=1">send a new invitation</a>.</p>
+      <form method="post" action="/people/{{ person.id }}/dismiss" novalidate>
+        {{ govukButton({ text: "Remove from list", classes: "govuk-button--secondary" }) }}
+      </form>
     {% elif isSelf %}
       <p class="govuk-body">You cannot change your own role or revoke your own access.</p>
     {% else %}
@@ -59,7 +78,7 @@
       {% endif %}
     {% endif %}
 
-    <h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status == "Invited" else "Holdings and roles" }}</h2>
+    <h2 class="govuk-heading-m">{{ "Holdings and roles offered" if person.status in ["Invited", "Expired", "Declined"] else "Holdings and roles" }}</h2>
 
     {{ tableSearch(table, "search-person-holdings") }}
 

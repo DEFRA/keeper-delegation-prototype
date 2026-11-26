@@ -56,7 +56,7 @@
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">david.wright@example.com</td>
       <td class="govuk-table__cell">CPH holder for Northfield Estates, which has 18 holdings</td>
-      <td class="govuk-table__cell">How the screens cope with lots of holdings: filter the holdings list, add someone to all or some holdings, change Emma's role on several holdings at once</td>
+      <td class="govuk-table__cell">How the screens cope with lots of holdings: search and page through holdings, add someone to all or some holdings, change Emma's role on several holdings at once. Kate Lowe's invitation has expired and Ben Carter declined his (LKPR-426, LKPR-430). Access history shows Mark Ellis, a former keeper administrator, and Josh's two separate periods on Northfield Farm (LKPR-443)</td>
     </tr>
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">emma.clark@example.com</td>
@@ -76,7 +76,12 @@
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">priya.patel@example.com</td>
       <td class="govuk-table__cell">Invited as a delegate but has not accepted yet</td>
-      <td class="govuk-table__cell">Cannot get in until enrolment is done. <a class="govuk-link" href="/invitation?id=r6">Open Priya's invitation</a> to accept or decline it (LKPR-423)</td>
+      <td class="govuk-table__cell">Cannot get in until enrolment is done. <a class="govuk-link" href="/invitation?id=r6">Open Priya's invitation</a> to accept or decline it (LKPR-423). It was sent 2 days ago, so it expires in 5</td>
+    </tr>
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">kate.lowe@example.com</td>
+      <td class="govuk-table__cell">Invited to Northfield Estates 9 days ago and did not accept</td>
+      <td class="govuk-table__cell">Sign in to see the expired invitation message, or <a class="govuk-link" href="/invitation?id=r14">open Kate's old invitation link</a> (LKPR-430)</td>
     </tr>
     <tr class="govuk-table__row">
       <td class="govuk-table__cell">any other email address</td>
@@ -90,6 +95,10 @@
   <div class="govuk-grid-column-two-thirds">
     <h2 class="govuk-heading-m">Other things to try</h2>
     <ul class="govuk-list govuk-list--bullet">
+      <li>As David, open Kate Lowe from People with access and choose "Send invitation again". The 7 days start again and her link works (LKPR-429)</li>
+      <li>As Jane, withdraw Priya's invitation, then <a class="govuk-link" href="/invitation?id=r6">open Priya's invitation link</a> to see that it has been withdrawn (LKPR-428)</li>
+      <li>As David, go to Manage access, then Access history, and filter by Josh Reid or by Northfield Farm. Revoke or change someone's role and their history updates (LKPR-443)</li>
+      <li>As anyone, choose "Your profile" in the header to see your name, email address and phone number (LKPR-516)</li>
       <li>As Jane, add <strong>blocked@example.com</strong> to see an ineligible appointment being rejected (US-KA-01 AC2)</li>
       <li>As Jane, open Tom and make him a keeper administrator on Lower Meadow only. Sign in as Tom to see he now has Manage access, but can only manage Lower Meadow (LKPR-433)</li>
       <li>As David, open Josh Reid and choose "Change role on several holdings" to make him a keeper administrator on the Kendal and Sedbergh holdings in one go</li>
@@ -102,8 +111,9 @@
 
     <h2 class="govuk-heading-m">Stories covered</h2>
     <p class="govuk-body">Epic LKPR-402: US-EXT-01 (LKPR-391), US-KA-01 (LKPR-392), US-KA-03 (LKPR-394), US-DEL-01 (LKPR-396), US-DEL-02 (LKPR-397), LKPR-420.</p>
-    <p class="govuk-body">Epic LKPR-403: Invite a Delegate (LKPR-423).</p>
-    <p class="govuk-body">Epic LKPR-404: US-KA-04 Remove access (LKPR-395), US-KA-07 Promote (LKPR-433), View delegated relationships (LKPR-436), View access delegated to me (LKPR-437), Demote (LKPR-438).</p>
+    <p class="govuk-body">Epic LKPR-403: Invite a Delegate (LKPR-423), Decline an invitation (LKPR-426), Withdraw a pending invitation (LKPR-428), Resend a pending invitation (LKPR-429), Expire unused invitations (LKPR-430).</p>
+    <p class="govuk-body">Epic LKPR-404: US-KA-04 Remove access (LKPR-395), US-KA-07 Promote (LKPR-433), View delegated relationships (LKPR-436), View access delegated to me (LKPR-437), Demote (LKPR-438), View historical delegations (LKPR-443).</p>
+    <p class="govuk-body">Epic LKPR-417: View my profile (LKPR-516).</p>
 
     <h2 class="govuk-heading-m">Reset</h2>
     <p class="govuk-body"><a class="govuk-link" href="/manage-prototype/clear-data">Clear data</a> to put everything back to how it started.</p>

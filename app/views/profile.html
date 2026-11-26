@@ -1,0 +1,31 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Your profile" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+
+    <h1 class="govuk-heading-l">Your profile</h1>
+
+    <p class="govuk-body">These are the details we hold about you.</p>
+
+    {{ govukSummaryList({
+      rows: [
+        { key: { text: "Name" }, value: { text: profile.name } },
+        { key: { text: "Email address" }, value: { text: profile.email } },
+        { key: { text: "Phone number" }, value: { text: profile.phone or "Not provided" } }
+      ]
+    }) }}
+
+    <h2 class="govuk-heading-m">Changing your details</h2>
+    <p class="govuk-body">Your details come from the account you use to sign in. You cannot change them here.</p>
+    <p class="govuk-body">To change your name, email address or phone number, go to your <a class="govuk-link" href="#">GOV.UK One Login</a>.</p>
+
+    {{ govukInsetText({ text: "Prototype only: read-only name, email address and phone number, from the Defra CI / One Login user profile (LKPR-516, LREG-961). The link does not go anywhere." }) }}
+
+  </div>
+</div>
+
+{% endblock %}

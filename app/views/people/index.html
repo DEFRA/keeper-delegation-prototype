@@ -11,7 +11,7 @@
       <th scope="col" class="govuk-table__header">Name</th>
       <th scope="col" class="govuk-table__header">{{ "Role on this holding" if holding else "Role" }}</th>
       {% if not holding %}<th scope="col" class="govuk-table__header">Holdings</th>{% endif %}
-      <th scope="col" class="govuk-table__header">{{ "Last signed in" if showSignIn else "Invited" }}</th>
+      <th scope="col" class="govuk-table__header">{{ "Last signed in" if showSignIn else "Invitation" }}</th>
       <th scope="col" class="govuk-table__header">Status</th>
     </tr>
   </thead>
@@ -26,7 +26,14 @@
       <td class="govuk-table__cell">{{ person.roleLabel }}</td>
       {% if not holding %}<td class="govuk-table__cell govuk-body-s">{{ person.holdingsLabel }}</td>{% endif %}
       <td class="govuk-table__cell govuk-body-s">
-        {% if showSignIn %}{{ (person.lastSignIn | formatDate) or "Not yet" }}{% else %}{{ person.addedOn | formatDate }} by {{ person.addedBy }}{% endif %}
+        {% if showSignIn %}{{ (person.lastSignIn | formatDate) or "Not yet" }}{% else %}
+          Sent {{ person.sentOn | formatDate }} by {{ person.addedBy }}
+          <span class="app-table-secondary">
+            {%- if person.status == "Invited" %}Expires {{ person.expiresOn | formatDate }}
+            {%- elif person.status == "Expired" %}Expired {{ person.expiresOn | formatDate }}
+            {%- elif person.status == "Declined" %}Declined {{ person.declinedOn | formatDate }}{% endif -%}
+          </span>
+        {% endif %}
       </td>
       <td class="govuk-table__cell"><strong class="govuk-tag {{ person.status | tagClass }}">{{ person.status }}</strong></td>
     </tr>
@@ -123,7 +130,8 @@
 {% endif %}
 
 {% if invited.length %}
-  {{ peopleTable(invited, "Invitations waiting to be accepted", false) }}
+  {{ peopleTable(invited, "Invitations", false) }}
+  <p class="govuk-body-s app-table-secondary">Invitations expire if they are not accepted within 7 days. Withdrawn invitations are not shown here, but you can see them in <a class="govuk-link" href="/activity">Activity</a>.</p>
 {% endif %}
 
 <div class="govuk-grid-row">

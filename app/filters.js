@@ -36,5 +36,8 @@ addFilter('tagClass', status => ({
   Declined: 'govuk-tag--orange',
   Revoked: 'govuk-tag--grey',
   Withdrawn: 'govuk-tag--grey',
-  Removed: 'govuk-tag--grey'
+  Removed: 'govuk-tag--grey',
+  Expired: 'govuk-tag--red',
+  Current: 'govuk-tag--green',
+  'Role changed': 'govuk-tag--purple'
 }[status] || 'govuk-tag--grey'))

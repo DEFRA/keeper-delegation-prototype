@@ -1,6 +1,8 @@
 {% extends "layouts/main.html" %}
 
-{% if invitation %}
+{% if invitation and invitation.status == "Expired" %}
+  {% set pageName = "Your invitation has expired" %}
+{% elif invitation %}
   {% set pageName = "You need to accept your invitation first" %}
 {% else %}
   {% set pageName = "You cannot use this service with this email address" %}
@@ -13,7 +15,12 @@
 
     <h1 class="govuk-heading-l">{{ pageName }}</h1>
 
-    {% if invitation %}
+    {% if invitation and invitation.status == "Expired" %}
+
+      <p class="govuk-body">{{ invitation.addedBy }} invited <strong>{{ email }}</strong> to help with their livestock business, but the invitation was not accepted within 7 days.</p>
+      <p class="govuk-body">Ask {{ invitation.addedBy }} to send you the invitation again.</p>
+
+    {% elif invitation %}
 
       <p class="govuk-body">{{ invitation.addedBy }} has invited <strong>{{ email }}</strong> to help with their livestock business.</p>
       <p class="govuk-body">You cannot access the business until you have accepted the invitation and completed the enrolment checks. Use the link in your invitation email to do this.</p>

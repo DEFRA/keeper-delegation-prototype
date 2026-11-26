@@ -14,7 +14,10 @@ const ROLE_SLUGS = { 'keeper-administrator': 'Keeper administrator', delegate: '
 const slugFor = role => Object.keys(ROLE_SLUGS).find(k => ROLE_SLUGS[k] === role)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RECORD_TYPES = ['Birth', 'Movement on', 'Movement off', 'Death']
-const INVITATION_DAYS = 14
+const INVITATION_DAYS = 7 // LKPR-430, confirmed 23 Nov 2026
+// Invitations an administrator still sees on People with access. Withdrawn
+// ones are not shown (LKPR-428); they stay in Activity and the audit log
+const INVITATION_LIST = ['Invited', 'Expired', 'Declined']
 
 const CANNOT_APPOINT_REASONS = {
   self: 'You cannot appoint yourself',
@@ -28,9 +31,62 @@ const CANNOT_APPOINT_REASONS = {
 
 function getState (req) {
   if (!req.session.data.state || req.session.data.state.version !== seed.version) {
-    req.session.data.state = JSON.parse(JSON.stringify(seed))
+    req.session.data.state = startingState()
   }
-  return req.session.data.state
+  const s = req.session.data.state
+  expireInvitations(s)
+  return s
+}
+
+// Invitations in the seed are dated relative to today, so they stay pending
+// (or expired) however long after the seed was written the prototype is used
+function startingState () {
+  const s = JSON.parse(JSON.stringify(seed))
+  const daysAgo = n => new Date(Date.now() - n * 86400000).toISOString()
+  s.relationships.forEach(r => {
+    if (r.sentDaysAgo !== undefined) { r.addedOn = r.sentOn = daysAgo(r.sentDaysAgo); delete r.sentDaysAgo }
+  })
+  s.audit.forEach(a => {
+    if (a.daysAgo !== undefined) { a.at = daysAgo(a.daysAgo); delete a.daysAgo }
+  })
+  return s
+}
+
+const formatDay = date => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
+const invitationExpiry = rel => new Date(new Date(rel.sentOn || rel.addedOn).getTime() + INVITATION_DAYS * 86400000)
+
+// LKPR-430: an invitation not accepted within 7 days expires and is logged
+function expireInvitations (s) {
+  const now = Date.now()
+  s.relationships
+    .filter(r => r.status === 'Invited' && invitationExpiry(r).getTime() <= now)
+    .forEach(rel => {
+      rel.status = 'Expired'
+      rel.expiredOn = invitationExpiry(rel).toISOString()
+      audit(s, {
+        at: rel.expiredOn,
+        actorName: 'System',
+        actorEmail: '',
+        action: 'Invitation expired',
+        recipientName: rel.name,
+        recipientEmail: rel.email,
+        businessId: rel.businessId,
+        role: distinctRoles(rel)[0],
+        outcome: 'Expired',
+        detail: `Not accepted within ${INVITATION_DAYS} days. The invitation link no longer works`
+      })
+    })
+}
+
+// LKPR-443: periods of access, one per person, role and holding
+function openPeriod (s, rel, cph, role) {
+  s.periods.push({ id: 'p' + (s.nextId++), email: rel.email, name: rel.name, businessId: rel.businessId, cph, role, from: new Date().toISOString(), to: null, ended: null })
+}
+
+function closePeriods (s, rel, cphs, ended) {
+  s.periods
+    .filter(p => p.email === rel.email && p.businessId === rel.businessId && !p.to && cphs.includes(p.cph))
+    .forEach(p => { p.to = new Date().toISOString(); p.ended = ended })
 }
 
 const asArray = value => (Array.isArray(value) ? value : [value]).filter(v => v && v !== '_unchecked')
@@ -67,7 +123,8 @@ function describe (s, rel) {
     mixedRoles: roles.length > 1,
     holdingsLabel: holdingsLabel(holdingsList, allHoldings && roles.length === 1),
     lastSignIn: person.lastSignIn,
-    expiresOn: rel.status === 'Invited' ? new Date(new Date(rel.addedOn).getTime() + INVITATION_DAYS * 86400000).toISOString() : null
+    sentOn: rel.sentOn || rel.addedOn,
+    expiresOn: rel.status === 'Invited' ? invitationExpiry(rel).toISOString() : (rel.status === 'Expired' ? rel.expiredOn : null)
   }
 }
 
@@ -166,11 +223,12 @@ function buildNav (req, s, user, rel) {
   if (rel && relIsAdmin(rel)) {
     // People, Your access and Activity sit under one Manage access section
     items.push(['/business', 'Business overview', ['/business']])
-    items.push(['/people', 'Manage access', ['/people', '/your-access', '/activity']])
+    items.push(['/people', 'Manage access', ['/people', '/your-access', '/activity', '/access-history']])
   } else {
     if (rel) items.push(['/holding', 'Your holding', ['/holding', '/choose-holding']])
     items.push(['/your-access', 'Your access', ['/your-access']])
   }
+  items.push(['/profile', 'Your profile', ['/profile']])
   items.push(['/sign-out', 'Sign out', []])
   return items.map(([href, text, paths]) => ({ href, text, active: under(paths) }))
 }
@@ -229,7 +287,8 @@ router.use((req, res, next) => {
     ? [
         { href: '/people', text: 'People with access', active: req.path === '/people' || req.path.startsWith('/people/') },
         { href: '/your-access', text: 'Your access', active: req.path === '/your-access' },
-        { href: '/activity', text: 'Activity', active: req.path === '/activity' }
+        { href: '/activity', text: 'Activity', active: req.path === '/activity' },
+        { href: '/access-history', text: 'Access history', active: req.path === '/access-history' }
       ]
     : null
   next()
@@ -267,6 +326,7 @@ function requireAdmin (attempted) {
 
 router.use('/people', requireAdmin('manage who has access'))
 router.use('/activity', requireAdmin('view the activity log'))
+router.use('/access-history', requireAdmin('view access history'))
 
 // ---------------------------------------------------------------------------
 // Sign in (US-EXT-01: CPH holder role granted when email matches SAM)
@@ -297,6 +357,11 @@ router.post('/sign-in', (req, res) => {
       s.relationships.push(rel)
     }
     rel.roles = business.holdings.map(h => ({ cph: h.cph, role: 'CPH holder' }))
+    business.holdings.forEach(h => {
+      if (s.periods.some(p => p.email === email && p.businessId === business.id && p.cph === h.cph && !p.to && p.role === 'CPH holder')) return
+      closePeriods(s, rel, [h.cph], 'Role changed')
+      openPeriod(s, rel, h.cph, 'CPH holder')
+    })
     audit(s, {
       actorName: record.name,
       actorEmail: email,
@@ -314,7 +379,8 @@ router.post('/sign-in', (req, res) => {
   const rels = activeRelationships(s, email)
 
   if (!rels.length) {
-    const invitation = s.relationships.find(r => r.email === email && r.status === 'Invited')
+    const invitation = s.relationships.find(r => r.email === email && r.status === 'Invited') ||
+      s.relationships.find(r => r.email === email && r.status === 'Expired')
     audit(s, {
       actorName: email,
       actorEmail: email,
@@ -519,7 +585,7 @@ router.get('/people', (req, res) => {
   const business = res.locals.currentBusiness
   const holding = req.query.holding ? findHolding(business, req.query.holding) : null
 
-  let rels = s.relationships.filter(r => r.businessId === business.id && ['Active', 'Invited'].includes(r.status))
+  let rels = s.relationships.filter(r => r.businessId === business.id && INVITATION_LIST.concat('Active').includes(r.status) && !r.dismissed)
   if (holding) rels = rels.filter(r => roleOn(r, holding.cph))
   const totalPeople = rels.length
   const q = (req.query.q || '').trim()
@@ -534,7 +600,7 @@ router.get('/people', (req, res) => {
     .sort((a, b) => byRole(a.role, b.role) || a.name.localeCompare(b.name))
 
   const active = people.filter(p => p.status === 'Active')
-  const invited = people.filter(p => p.status === 'Invited')
+  const invited = people.filter(p => INVITATION_LIST.includes(p.status))
   const delegatedCount = active.filter(p => p.role !== 'CPH holder').length
 
   const pageExtra = { holding: holding ? holding.cph : '', q }
@@ -708,6 +774,9 @@ router.post('/people/add/check', (req, res) => {
     addedBy: user.name,
     addedOn: new Date().toISOString()
   }
+  s.relationships
+    .filter(r => r.email === rel.email && r.businessId === business.id && ['Expired', 'Declined'].includes(r.status))
+    .forEach(r => { r.dismissed = true })
   s.relationships.push(rel)
 
   audit(s, {
@@ -740,7 +809,7 @@ router.get('/people/add/sent', (req, res) => {
 // demote), revoke per holding (LKPR-395), withdraw invitation (LKPR-403)
 // ---------------------------------------------------------------------------
 
-function personInBusiness (req, res, statuses = ['Active', 'Invited']) {
+function personInBusiness (req, res, statuses = ['Active', 'Invited', 'Expired', 'Declined']) {
   const s = getState(req)
   return s.relationships.find(r => r.id === req.params.id && r.businessId === res.locals.currentBusiness.id && statuses.includes(r.status))
 }
@@ -866,6 +935,8 @@ router.post('/people/:id/role/confirm', (req, res) => {
   const promoted = to === 'Keeper administrator'
   changing.forEach(h => {
     rel.roles.find(r => r.cph === h.cph).role = to
+    closePeriods(s, rel, [h.cph], 'Role changed')
+    openPeriod(s, rel, h.cph, to)
     audit(s, {
       actorName: user.name,
       actorEmail: user.email,
@@ -947,6 +1018,7 @@ router.post('/people/:id/revoke/confirm', (req, res) => {
     })
   })
   rel.roles = rel.roles.filter(r => !holdings.some(h => h.cph === r.cph))
+  closePeriods(s, rel, holdings.map(h => h.cph), 'Revoked')
 
   if (removesAll) {
     rel.status = 'Removed'
@@ -985,6 +1057,108 @@ router.post('/people/:id/withdraw', (req, res) => {
   })
   s.flash = `The invitation to ${rel.name} has been withdrawn`
   res.redirect('/people')
+})
+
+// LKPR-429: resend a pending (or expired) invitation. Same role and holdings,
+// a new link, and the 7 days start again
+router.get('/people/:id/resend', (req, res) => {
+  const s = getState(req)
+  const rel = personInBusiness(req, res, ['Invited', 'Expired'])
+  if (!rel) return res.redirect('/people')
+  const newExpiry = new Date(Date.now() + INVITATION_DAYS * 86400000).toISOString()
+  res.render('people/resend', { person: describe(s, rel), newExpiry })
+})
+
+router.post('/people/:id/resend', (req, res) => {
+  const s = getState(req)
+  const rel = personInBusiness(req, res, ['Invited', 'Expired'])
+  if (!rel) return res.redirect('/people')
+  const user = res.locals.currentUser
+  const wasExpired = rel.status === 'Expired'
+  rel.status = 'Invited'
+  rel.sentOn = new Date().toISOString()
+  rel.resentCount = (rel.resentCount || 0) + 1
+  delete rel.expiredOn
+  audit(s, {
+    actorName: user.name,
+    actorEmail: user.email,
+    action: 'Invitation resent',
+    recipientName: rel.name,
+    recipientEmail: rel.email,
+    businessId: rel.businessId,
+    role: distinctRoles(rel)[0],
+    outcome: 'Pending enrolment',
+    detail: `${wasExpired ? 'The invitation had expired. ' : ''}Same role and holdings. ${rolesSummary(rel.roles)}`
+  })
+  s.flash = `Invitation sent again to ${rel.name}. It expires on ${formatDay(invitationExpiry(rel))}`
+  res.redirect(`/people/${rel.id}`)
+})
+
+// Take an expired or declined invitation off People with access. It stays in
+// Activity, and you can invite the person again
+router.post('/people/:id/dismiss', (req, res) => {
+  const s = getState(req)
+  const rel = personInBusiness(req, res, ['Expired', 'Declined'])
+  if (!rel) return res.redirect('/people')
+  rel.dismissed = true
+  s.flash = `The ${rel.status.toLowerCase()} invitation to ${rel.name} has been removed from the list`
+  res.redirect('/people')
+})
+
+// ---------------------------------------------------------------------------
+// Access history (LKPR-443): discrete periods of access with start and end
+// dates, one row per person, role and period (holdings grouped)
+// ---------------------------------------------------------------------------
+
+router.get('/access-history', (req, res) => {
+  const s = getState(req)
+  const business = res.locals.currentBusiness
+  const all = s.periods.filter(p => p.businessId === business.id)
+  const rels = s.relationships.filter(r => r.businessId === business.id)
+  const seen = new Set()
+  const people = rels
+    .filter(r => all.some(p => p.email === r.email))
+    .filter(r => !seen.has(r.email) && seen.add(r.email))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  const person = people.find(r => r.id === req.query.person) || null
+  const holding = req.query.holding ? findHolding(business, req.query.holding) : null
+  const status = ['current', 'ended'].includes(req.query.status) ? req.query.status : ''
+
+  let periods = all
+  if (person) periods = periods.filter(p => p.email === person.email)
+  if (holding) periods = periods.filter(p => p.cph === holding.cph)
+  if (status) periods = periods.filter(p => (status === 'current') === !p.to)
+
+  // Group holdings that share the same person, role and dates into one row
+  const groups = {}
+  periods.forEach(p => {
+    const key = [p.email, p.role, p.from.slice(0, 10), (p.to || '').slice(0, 10), p.ended].join('|')
+    const g = groups[key] = groups[key] || { name: p.name, email: p.email, role: p.role, from: p.from, to: p.to, ended: p.ended, holdings: [] }
+    g.holdings.push(findHolding(business, p.cph))
+  })
+  const rows = Object.values(groups)
+    .map(g => ({ ...g, holdings: g.holdings.filter(Boolean).sort((a, b) => a.cph.localeCompare(b.cph)), personId: (rels.find(r => r.email === g.email && ['Active', 'Invited', 'Expired', 'Declined'].includes(r.status)) || {}).id }))
+    .sort((a, b) => (!a.to - !b.to) * -1 || (b.to || '').localeCompare(a.to || '') || b.from.localeCompare(a.from))
+
+  res.render('access-history', {
+    table: pageList(rows, req.query, '/access-history', { size: 20, extra: { person: person && person.id, holding: holding && holding.cph, status }, label: 'Access history pages' }),
+    people,
+    holdings: business.holdings,
+    person,
+    holding,
+    status,
+    filtered: !!(person || holding || status)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Your profile (LKPR-516): read only, mastered in GOV.UK One Login / Defra CI
+// ---------------------------------------------------------------------------
+
+router.get('/profile', (req, res) => {
+  const user = res.locals.currentUser
+  if (!user) return res.redirect('/sign-in')
+  res.render('profile', { profile: findPerson(getState(req), user.email) || user })
 })
 
 // ---------------------------------------------------------------------------
@@ -1035,22 +1209,31 @@ function findInvitation (req) {
   return rel ? describe(s, rel) : null
 }
 
+// Rendered whenever an invitation link is opened or used but the invitation is
+// no longer pending: withdrawn, expired, declined or already accepted
+function invitationNotValid (req, res) {
+  const s = getState(req)
+  const id = req.query.id || (req.body && req.body.invitationId)
+  const rel = s.relationships.find(r => r.id === id)
+  return res.render('invitation/not-found', { invitation: rel ? describe(s, rel) : null })
+}
+
 router.get('/invitation', (req, res) => {
   const invitation = findInvitation(req)
-  if (!invitation) return res.render('invitation/not-found')
+  if (!invitation) return invitationNotValid(req, res)
   res.render('invitation/index', { invitation })
 })
 
 router.get('/invitation/enrol', (req, res) => {
   const invitation = findInvitation(req)
-  if (!invitation) return res.render('invitation/not-found')
+  if (!invitation) return invitationNotValid(req, res)
   res.render('invitation/enrol', { invitation })
 })
 
 router.post('/invitation/enrol', (req, res) => {
   const s = getState(req)
   const invitation = findInvitation(req)
-  if (!invitation) return res.render('invitation/not-found')
+  if (!invitation) return invitationNotValid(req, res)
 
   if (!asArray(req.body.enrolDeclaration).length) {
     return res.render('invitation/enrol', { invitation, ...withErrors({ enrolDeclaration: 'Confirm that your details are correct and you understand your responsibilities' }) })
@@ -1059,6 +1242,7 @@ router.post('/invitation/enrol', (req, res) => {
   const rel = s.relationships.find(r => r.id === invitation.id)
   rel.status = 'Active'
   rel.activatedOn = new Date().toISOString()
+  rel.roles.forEach(r => openPeriod(s, rel, r.cph, r.role))
   audit(s, {
     actorName: rel.name,
     actorEmail: rel.email,
@@ -1088,16 +1272,17 @@ router.get('/invitation/complete', (req, res) => {
 
 router.get('/invitation/decline', (req, res) => {
   const invitation = findInvitation(req)
-  if (!invitation) return res.render('invitation/not-found')
+  if (!invitation) return invitationNotValid(req, res)
   res.render('invitation/decline', { invitation })
 })
 
 router.post('/invitation/decline', (req, res) => {
   const s = getState(req)
   const invitation = findInvitation(req)
-  if (!invitation) return res.render('invitation/not-found')
+  if (!invitation) return invitationNotValid(req, res)
   const rel = s.relationships.find(r => r.id === invitation.id)
   rel.status = 'Declined'
+  rel.declinedOn = new Date().toISOString()
   audit(s, {
     actorName: rel.name,
     actorEmail: rel.email,

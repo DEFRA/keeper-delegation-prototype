@@ -1,0 +1,122 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Access history – Manage access" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+    <span class="govuk-caption-l">{{ currentBusiness.name }}</span>
+    <h1 class="govuk-heading-l">Manage access</h1>
+    {% include "includes/access-nav.html" %}
+  </div>
+</div>
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <h2 class="govuk-heading-m">Access history</h2>
+    <p class="govuk-body">Each period someone has had a role on your holdings, including access that has ended. If someone had the same role twice, you will see 2 rows.</p>
+
+    {% set personItems = [{ value: "", text: "Everyone" }] %}
+    {% for p in people %}
+      {% set personItems = (personItems.push({ value: p.id, text: p.name, selected: person and person.id == p.id }), personItems) %}
+    {% endfor %}
+    {% set holdingItems = [{ value: "", text: "All holdings" }] %}
+    {% for h in holdings %}
+      {% set holdingItems = (holdingItems.push({ value: h.cph, text: h.name + " (" + h.cph + ")", selected: holding and holding.cph == h.cph }), holdingItems) %}
+    {% endfor %}
+
+    <form method="get" action="/access-history" novalidate class="govuk-!-margin-bottom-4">
+      <div class="app-table-search__row">
+        {{ govukSelect({
+          id: "person",
+          name: "person",
+          label: { text: "Person", classes: "govuk-label--s" },
+          items: personItems,
+          formGroup: { classes: "govuk-!-margin-bottom-0" }
+        }) }}
+        {% if holdings.length > 1 %}
+        {{ govukSelect({
+          id: "holding",
+          name: "holding",
+          label: { text: "Holding", classes: "govuk-label--s" },
+          items: holdingItems,
+          formGroup: { classes: "govuk-!-margin-bottom-0" }
+        }) }}
+        {% endif %}
+        {{ govukSelect({
+          id: "status",
+          name: "status",
+          label: { text: "Access", classes: "govuk-label--s" },
+          items: [
+            { value: "", text: "Current and ended" },
+            { value: "current", text: "Current only", selected: status == "current" },
+            { value: "ended", text: "Ended only", selected: status == "ended" }
+          ],
+          formGroup: { classes: "govuk-!-margin-bottom-0" }
+        }) }}
+        {{ govukButton({ text: "Show history", classes: "govuk-button--secondary govuk-!-margin-bottom-0" }) }}
+      </div>
+    </form>
+
+    {% if filtered %}
+      <p class="govuk-body" role="status">
+        {{ table.matched }} {{ "period" if table.matched == 1 else "periods" }} of access{% if person %} for {{ person.name }}{% endif %}{% if holding %} on {{ holding.name }}{% endif %}.
+        <a class="govuk-link" href="/access-history">Show all</a>
+      </p>
+    {% elif table.pagination %}
+      <p class="govuk-body">Showing {{ table.from }} to {{ table.to }} of {{ table.matched }} periods of access</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if table.matched %}
+<table class="govuk-table">
+  <thead class="govuk-table__head">
+    <tr class="govuk-table__row">
+      <th scope="col" class="govuk-table__header">Person</th>
+      <th scope="col" class="govuk-table__header">Role</th>
+      <th scope="col" class="govuk-table__header">Holdings</th>
+      <th scope="col" class="govuk-table__header">From</th>
+      <th scope="col" class="govuk-table__header">To</th>
+      <th scope="col" class="govuk-table__header">Status</th>
+    </tr>
+  </thead>
+  <tbody class="govuk-table__body">
+    {% for row in table.items %}
+    <tr class="govuk-table__row">
+      <td class="govuk-table__cell">
+        {% if row.personId %}<a class="govuk-link" href="/people/{{ row.personId }}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}
+      </td>
+      <td class="govuk-table__cell">{{ row.role }}</td>
+      <td class="govuk-table__cell govuk-body-s">
+        {% if row.holdings.length == 1 %}
+          {{ row.holdings[0].name }} <span class="app-table-secondary">{{ row.holdings[0].cph }}</span>
+        {% else %}
+          {% set listHtml %}<ul class="govuk-list govuk-body-s">{% for h in row.holdings %}<li>{{ h.name }} ({{ h.cph }})</li>{% endfor %}</ul>{% endset %}
+          {{ govukDetails({ summaryText: row.holdings.length + " holdings", html: listHtml, classes: "govuk-!-margin-bottom-0" }) }}
+        {% endif %}
+      </td>
+      <td class="govuk-table__cell govuk-body-s">{{ row.from | formatDate }}</td>
+      <td class="govuk-table__cell govuk-body-s">{{ (row.to | formatDate) if row.to else "Now" }}</td>
+      <td class="govuk-table__cell"><strong class="govuk-tag {{ (row.ended or 'Current') | tagClass }}">{{ row.ended or "Current" }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% if table.pagination %}
+  {% if filtered %}<p class="govuk-body-s app-table-secondary">Showing {{ table.from }} to {{ table.to }} of {{ table.matched }}</p>{% endif %}
+  {{ govukPagination(table.pagination) }}
+{% endif %}
+{% else %}
+<p class="govuk-body">No access matches these filters.</p>
+{% endif %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    {{ govukInsetText({ text: "To be confirmed: whether front office users need this, or it becomes a back office feature (LKPR-443). Invitations that were never accepted are not access, so they appear in Activity rather than here." }) }}
+  </div>
+</div>
+
+{% endblock %}
