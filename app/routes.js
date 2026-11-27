@@ -6,6 +6,7 @@
 const govukPrototypeKit = require('govuk-prototype-kit')
 const router = govukPrototypeKit.requests.setupRouter()
 const seed = require('./data/seed')
+const taskCards = require('./data/task-cards')
 
 const ADMIN_ROLES = ['CPH holder', 'Keeper administrator']
 const APPOINTABLE_ROLES = ['Keeper administrator', 'Delegate']
@@ -1133,6 +1134,15 @@ router.get('/access-history', (req, res) => {
     status,
     filtered: !!(person || holding || status)
   })
+})
+
+// ---------------------------------------------------------------------------
+// Task cards for hands-on walkthroughs, one per story. Not part of the service
+// ---------------------------------------------------------------------------
+
+router.get('/task-cards', (req, res) => {
+  const count = taskCards.reduce((n, g) => n + g.cards.length, 0)
+  res.render('task-cards', { groups: taskCards, count })
 })
 
 // ---------------------------------------------------------------------------

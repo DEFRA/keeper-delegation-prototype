@@ -1,0 +1,62 @@
+{% extends "layouts/main.html" %}
+
+{% set pageName = "Task cards" %}
+
+{% block content %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <span class="govuk-caption-l">For walkthroughs</span>
+    <h1 class="govuk-heading-xl">Task cards</h1>
+    <p class="govuk-body-l">{{ count }} tasks, one for each story in the prototype. Each one gives you something to get done, not the steps, so find your own way round the screens.</p>
+
+    <h2 class="govuk-heading-m">Before you start</h2>
+    <ul class="govuk-list govuk-list--bullet">
+      <li>Choose <a class="govuk-link" href="/start">Start the service</a> and sign in with the email address on the card. There is no password.</li>
+      <li>Use Sign out in the header to switch person.</li>
+      <li>If something has already been changed, <a class="govuk-link" href="/manage-prototype/clear-data">clear data</a> to put everything back.</li>
+      <li>Your changes are only saved for you, so you cannot break anything for anyone else.</li>
+    </ul>
+    <p class="govuk-body">Open this page in a second tab so you can keep the cards in view while you work.</p>
+  </div>
+</div>
+
+{% for group in groups %}
+<h2 class="govuk-heading-l app-task-cards__heading" id="{{ group.epic | lower }}">
+  {{ group.heading }}
+  <span class="govuk-caption-m">Epic {{ group.epic }}</span>
+</h2>
+
+<ul class="app-task-cards" role="list">
+  {% for card in group.cards %}
+  <li class="app-task-card" id="{{ card.key | lower }}">
+    <p class="govuk-body-s govuk-!-margin-bottom-2">
+      <strong class="govuk-tag govuk-tag--yellow">{{ card.key }}</strong>
+      <span class="app-table-secondary">{{ card.story }}</span>
+    </p>
+    <h3 class="govuk-heading-m govuk-!-margin-bottom-3">{{ card.title }}</h3>
+    <p class="govuk-body govuk-!-margin-bottom-3">
+      <span class="app-task-card__label">Sign in as</span>
+      <strong class="app-task-card__email">{{ card.signIn }}</strong>
+    </p>
+    {% for task in card.tasks %}
+      <p class="govuk-body">{{ task | safe }}</p>
+    {% endfor %}
+    {% if card.before %}
+      <div class="govuk-inset-text govuk-body-s govuk-!-margin-top-0">{{ card.before | safe }}</div>
+    {% endif %}
+    {% set notesHtml %}<ul class="govuk-list govuk-list--bullet govuk-body-s">{% for note in card.notes %}<li>{{ note | safe }}</li>{% endfor %}</ul>{% endset %}
+    {{ govukDetails({ summaryText: "What should happen", html: notesHtml, classes: "govuk-!-margin-bottom-0" }) }}
+  </li>
+  {% endfor %}
+</ul>
+{% endfor %}
+
+<div class="govuk-grid-row">
+  <div class="govuk-grid-column-two-thirds">
+    <p class="govuk-body">Some tasks change things that later tasks rely on, like withdrawing or declining Priya’s invitation. Clear data between tasks if anything looks wrong.</p>
+    <p class="govuk-body"><a class="govuk-link" href="/">Back to the prototype index</a></p>
+  </div>
+</div>
+
+{% endblock %}
